@@ -22,6 +22,11 @@ def init_db(conn):
             opex_per_mw REAL,
             wacc REAL,
             lifespan REAL,
+            grid_fee_import REAL,
+            efficiency_store REAL,
+            efficiency_dispatch REAL,
+            depth_of_discharge REAL,
+            degradation_penalty REAL,
             status TEXT
         )
     ''')
@@ -47,7 +52,7 @@ def main():
             
             # Poll for a pending job
             cursor.execute('''
-                SELECT job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan 
+                SELECT job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty
                 FROM job_queue 
                 WHERE status = 'PENDING' 
                 LIMIT 1
@@ -55,7 +60,7 @@ def main():
             row = cursor.fetchone()
             
             if row:
-                job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan = row
+                job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty = row
                 
                 # Transaction Locking: immediately update status to 'RUNNING'
                 cursor.execute("UPDATE job_queue SET status = 'RUNNING' WHERE job_id = ?", (job_id,))
@@ -73,7 +78,7 @@ def main():
                     
                     # Domain Execution
                     # 1. Optimize dispatch
-                    dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh)
+                    dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
                     
                     # 2. Calculate financials
                     metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan)

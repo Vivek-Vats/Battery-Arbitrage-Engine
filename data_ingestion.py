@@ -22,17 +22,17 @@ def main():
     country_code = 'NL'
     
     # Query Splitting: bypass Bug #531
-    # 2023 query into two half-year calls
-    start_1 = pd.Timestamp('2023-01-01', tz='Europe/Amsterdam')
-    end_1 = pd.Timestamp('2023-07-01', tz='Europe/Amsterdam')
+    # 2024 query into two half-year calls
+    start_1 = pd.Timestamp('2024-01-01', tz='Europe/Amsterdam')
+    end_1 = pd.Timestamp('2024-07-01', tz='Europe/Amsterdam')
     
-    start_2 = pd.Timestamp('2023-07-01', tz='Europe/Amsterdam')
-    end_2 = pd.Timestamp('2024-01-01', tz='Europe/Amsterdam')
+    start_2 = pd.Timestamp('2024-07-01', tz='Europe/Amsterdam')
+    end_2 = pd.Timestamp('2025-01-01', tz='Europe/Amsterdam')
     
-    print("Fetching H1 2023...")
+    print("Fetching H1 2024...")
     try:
         df1 = fetch_prices(start_1, end_1, country_code)
-        print("Fetching H2 2023...")
+        print("Fetching H2 2024...")
         df2 = fetch_prices(start_2, end_2, country_code)
     except Exception as e:
         print(f"Error fetching data: {e}")
@@ -47,11 +47,11 @@ def main():
     df = df.tz_convert('UTC')
     
     # 2. Create a continuous pd.date_range reference index (UTC)
-    start_utc = pd.Timestamp('2023-01-01', tz='Europe/Amsterdam').tz_convert('UTC')
-    end_utc = pd.Timestamp('2024-01-01', tz='Europe/Amsterdam').tz_convert('UTC') - pd.Timedelta(hours=1)
+    start_utc = pd.Timestamp('2024-01-01', tz='Europe/Amsterdam').tz_convert('UTC')
+    end_utc = pd.Timestamp('2025-01-01', tz='Europe/Amsterdam').tz_convert('UTC') - pd.Timedelta(minutes=15)
     
-    # with an hourly ('h') frequency
-    spine = pd.date_range(start=start_utc, end=end_utc, freq='h')
+    # with a 15-minute frequency
+    spine = pd.date_range(start=start_utc, end=end_utc, freq='15min')
     
     # Remove any duplicates before reindexing
     df = df[~df.index.duplicated(keep='first')]

@@ -14,7 +14,7 @@ import time
 
 # Page Configuration
 st.set_page_config(page_title="BESS Arbitrage MVP", layout="wide")
-st.title("Phase 5.0 BESS Arbitrage MVP Dashboard")
+st.title("Phase 6.0 BESS Arbitrage MVP Dashboard")
 
 DB_PATH = 'bess_data.db'
 
@@ -24,10 +24,15 @@ with st.sidebar:
     with st.form("bess_config_form"):
         power_mw = st.number_input("Power (MW)", min_value=1.0, value=100.0, step=1.0)
         energy_mwh = st.number_input("Energy (MWh)", min_value=1.0, value=200.0, step=1.0)
-        capex_per_kwh = st.number_input("CAPEX (€/kWh)", min_value=0.0, value=350.0, step=10.0)
+        capex_per_kwh = st.number_input("CAPEX (€/kWh)", min_value=0.0, value=180.0, step=10.0)
         opex_per_mw = st.number_input("OPEX (€/MW)", min_value=0.0, value=15000.0, step=1000.0)
         wacc = st.number_input("WACC (%)", min_value=0.0, value=7.0, step=0.1)
         lifespan = st.number_input("Lifespan (Years)", min_value=1, value=15, step=1)
+        grid_fee_import = st.number_input("Grid Fee Import (€/MWh)", min_value=0.0, value=15.0, step=1.0)
+        efficiency_store = st.number_input("Charge Efficiency (%)", value=93.0, max_value=100.0)
+        efficiency_dispatch = st.number_input("Discharge Efficiency (%)", value=93.0, max_value=100.0)
+        depth_of_discharge = st.number_input("Depth of Discharge (%)", value=90.0, max_value=100.0)
+        degradation_penalty = st.number_input("Degradation Penalty (€/MWh)", min_value=0.0, value=5.0)
         submit_button = st.form_submit_button("Run Dispatch Optimization")
 
 if submit_button:
@@ -37,9 +42,9 @@ if submit_button:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO job_queue (job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, 'PENDING'))
+        INSERT INTO job_queue (job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty, 'PENDING'))
     conn.commit()
     conn.close()
     
@@ -88,7 +93,7 @@ if submit_button:
         dispatch_df['power_state'] = dispatch_df['p_dispatch'] - dispatch_df['p_store']
         
         st.header("Financial KPIs")
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
         
         with col1:
             st.metric(label="Gross Revenue", value=f"€{metrics.get('Annual_Gross_Revenue_EUR', 0):,.2f}")
@@ -98,6 +103,10 @@ if submit_button:
             st.metric(label="Simple Payback", value=f"{metrics.get('Simple_Payback_Years', metrics.get('payback_years', 0)):.2f} Years")
         with col4:
             st.metric(label="Annual ROI", value=f"{metrics.get('Annual_ROI_Percentage', 0):.2f}%")
+        with col5:
+            st.metric(label="Equivalent Full Cycles", value=f"{metrics.get('Equivalent_Full_Cycles', 0):.1f} Cycles")
+        with col6:
+            st.metric(label="Annual Degradation Cost", value=f"€{metrics.get('Annual_Degradation_Cost_EUR', 0):.2f}")
             
         st.header("Dispatch Timeseries Visualization")
         
@@ -168,13 +177,22 @@ if submit_button:
         )
         
         # Configure X-axes and rangeslider
-        fig.update_xaxes(title_text="", row=1, col=1)
-        fig.update_xaxes(title_text="Datetime", rangeslider_visible=True, row=2, col=1)
+        fig.update_xaxes(title_text="", showticklabels=False, row=1, col=1)
+        fig.update_xaxes(
+            title_text="", 
+            rangeslider=dict(visible=True, thickness=0.05),
+            tickformat="Week %V",
+            tickformatstops=[
+                dict(dtickrange=[604800000, None], value=""),
+                dict(dtickrange=[None, 604800000], value="%b %d, %H:%M")
+            ],
+            row=2, col=1
+        )
         
         # Configure Y-axes
-        fig.update_yaxes(title_text="Electricity Price (€ / MWh)", row=1, col=1, secondary_y=False)
-        fig.update_yaxes(title_text="BESS Power (MW)", row=1, col=1, secondary_y=True)
-        fig.update_yaxes(title_text="State of Charge (MWh)", row=2, col=1, secondary_y=False)
+        fig.update_yaxes(title_text="Electricity Price (€ / MWh)", fixedrange=True, row=1, col=1, secondary_y=False)
+        fig.update_yaxes(title_text="BESS Power (MW)", fixedrange=True, row=1, col=1, secondary_y=True)
+        fig.update_yaxes(title_text="State of Charge (MWh)", fixedrange=True, row=2, col=1, secondary_y=False)
         
         st.plotly_chart(fig, use_container_width=True)
     else:
