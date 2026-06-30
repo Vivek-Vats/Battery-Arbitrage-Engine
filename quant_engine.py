@@ -25,7 +25,13 @@ def optimize_dispatch(prices_df, power_mw, energy_mwh, grid_fee_import, efficien
     # Convert percentage inputs into decimals
     eff_store = efficiency_store / 100.0
     eff_dispatch = efficiency_dispatch / 100.0
-    min_soc_pu = 1.0 - (depth_of_discharge / 100.0)
+    
+    # StorageUnit does not natively support minimum SOC constraints.
+    # We enforce DoD by restricting the solver to only trade the 'usable' energy,
+    # and treating the remaining energy as a mathematically dead floor and ceiling.
+    usable_energy_mwh = energy_mwh * (depth_of_discharge / 100.0)
+    dead_energy_mwh = energy_mwh - usable_energy_mwh
+    lower_dead_energy_mwh = dead_energy_mwh / 2.0
 
     # Strip timezone to avoid PyPSA snapshot errors
     prices_df_naive = prices_df.copy()
@@ -50,11 +56,10 @@ def optimize_dispatch(prices_df, power_mw, energy_mwh, grid_fee_import, efficien
     n.add("StorageUnit", "lithium_ion_bess",
           bus="AC",
           p_nom=power_mw,
-          max_hours=(energy_mwh / power_mw),
+          max_hours=(usable_energy_mwh / power_mw),
           marginal_cost=degradation_penalty + grid_fee_import,
           efficiency_store=eff_store,
           efficiency_dispatch=eff_dispatch,
-          state_of_charge_min_pu=min_soc_pu,
           cyclic_state_of_charge=True)
 
     # Solve & Extract
@@ -71,7 +76,9 @@ def optimize_dispatch(prices_df, power_mw, energy_mwh, grid_fee_import, efficien
 
     p_dispatch = n.storage_units_t.p_dispatch['lithium_ion_bess']
     p_store = n.storage_units_t.p_store['lithium_ion_bess']
-    soc = n.storage_units_t.state_of_charge['lithium_ion_bess']
+    
+    # Shift the solver's SOC output up by the lower dead energy bound to correctly center the physical inventory
+    soc = n.storage_units_t.state_of_charge['lithium_ion_bess'] + lower_dead_energy_mwh
 
     dispatch_df = pd.DataFrame({
         'p_dispatch': p_dispatch,

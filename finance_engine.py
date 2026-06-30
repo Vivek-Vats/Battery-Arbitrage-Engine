@@ -1,6 +1,6 @@
 import pandas as pd
 
-def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan_years):
+def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan_years, grid_fee_import, efficiency_dispatch):
     time_step_hours = 0.25
     
     # Calculate Total CAPEX and Annual OPEX based on new energy-centric valuation
@@ -8,7 +8,9 @@ def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_
     ANNUAL_OPEX = opex_per_mw * power_mw
     
     # Calculate Annual Gross Revenue
-    gross_revenue_series = ((dispatch_df['p_dispatch'] * dispatch_df['price']) - (dispatch_df['p_store'] * dispatch_df['price'])) * time_step_hours
+    cost_of_charging = dispatch_df['p_store'] * (dispatch_df['price'] + grid_fee_import)
+    revenue_from_discharging = dispatch_df['p_dispatch'] * dispatch_df['price']
+    gross_revenue_series = (revenue_from_discharging - cost_of_charging) * time_step_hours
     annual_gross_revenue = gross_revenue_series.sum()
     
     # Calculate Annual Delivered MWh
@@ -34,8 +36,9 @@ def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_
     net_annual_cash_flow = annual_gross_revenue - ANNUAL_OPEX
     
     # Rainflow counting proxy / Battery wear-and-tear
-    total_throughput_mwh = dispatch_df['p_dispatch'].sum() * time_step_hours
-    efc = total_throughput_mwh / energy_mwh
+    eff_dispatch_decimal = efficiency_dispatch / 100.0
+    internal_dc_throughput_mwh = (dispatch_df['p_dispatch'].sum() * time_step_hours) / eff_dispatch_decimal
+    efc = internal_dc_throughput_mwh / energy_mwh
     annual_degradation_cost = (efc / 6000) * TOTAL_CAPEX
     net_annual_cash_flow -= annual_degradation_cost
     

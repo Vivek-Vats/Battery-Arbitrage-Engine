@@ -76,12 +76,17 @@ if submit_button:
     # Fetch results
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT metrics_json, dispatch_json FROM job_results WHERE job_id = ?", (job_id,))
+    cursor.execute("""
+        SELECT jr.metrics_json, jr.dispatch_json, jq.energy_mwh 
+        FROM job_results jr 
+        JOIN job_queue jq ON jr.job_id = jq.job_id 
+        WHERE jr.job_id = ?
+    """, (job_id,))
     res = cursor.fetchone()
     conn.close()
     
     if res:
-        metrics_json, dispatch_json = res
+        metrics_json, dispatch_json, energy_capacity = res
         metrics = json.loads(metrics_json)
         dispatch_data = json.loads(dispatch_json)
         dispatch_df = pd.DataFrame(dispatch_data)
@@ -91,6 +96,9 @@ if submit_button:
         
         # Calculate Power State: discharging is positive, charging is negative
         dispatch_df['power_state'] = dispatch_df['p_dispatch'] - dispatch_df['p_store']
+        
+        # Calculate State of Charge as a percentage
+        dispatch_df['soc_percentage'] = (dispatch_df['state_of_charge'] / energy_capacity) * 100
         
         st.header("Financial KPIs")
         col1, col2, col3, col4, col5, col6 = st.columns(6)
@@ -110,27 +118,17 @@ if submit_button:
             
         st.header("Dispatch Timeseries Visualization")
         
-        # Create figure with 2 rows, 1 column, shared X-axes, and a secondary y-axis for the first row
+        # Create figure with 2 rows, 1 column, shared X-axes
+        # Top row: Dispatch Power only
+        # Bottom row: Electricity Price and State of Charge (dual axis)
         fig = make_subplots(
             rows=2, cols=1,
             shared_xaxes=True,
-            specs=[[{"secondary_y": True}], [{"secondary_y": False}]],
+            specs=[[{"secondary_y": False}], [{"secondary_y": True}]],
             vertical_spacing=0.1
         )
         
-        # Row 1: Electricity Price as semi-transparent blue line on primary Y-axis
-        fig.add_trace(
-            go.Scatter(
-                x=dispatch_df['datetime'], 
-                y=dispatch_df['price'], 
-                name="Electricity Price",
-                mode="lines",
-                line=dict(color="rgba(0, 0, 255, 0.5)")
-            ),
-            row=1, col=1, secondary_y=False
-        )
-        
-        # Row 1: p_dispatch (selling) as Green bars on secondary Y-axis
+        # Row 1: p_dispatch (selling) as Green bars
         fig.add_trace(
             go.Bar(
                 x=dispatch_df['datetime'], 
@@ -139,10 +137,10 @@ if submit_button:
                 marker_color="green",
                 opacity=0.8
             ),
-            row=1, col=1, secondary_y=True
+            row=1, col=1
         )
 
-        # Row 1: p_store (buying) as Red bars (negative) on secondary Y-axis
+        # Row 1: p_store (buying) as Red bars (negative)
         fig.add_trace(
             go.Bar(
                 x=dispatch_df['datetime'], 
@@ -151,20 +149,32 @@ if submit_button:
                 marker_color="red",
                 opacity=0.8
             ),
-            row=1, col=1, secondary_y=True
+            row=1, col=1
         )
         
-        # Row 2: Battery State of Charge (MWh) as filled area chart (purple)
+        # Row 2: Electricity Price as blue line on primary Y-axis
         fig.add_trace(
             go.Scatter(
                 x=dispatch_df['datetime'], 
-                y=dispatch_df['state_of_charge'], 
+                y=dispatch_df['price'], 
+                name="Electricity Price",
+                mode="lines",
+                line=dict(color="rgba(0, 0, 255, 0.7)")
+            ),
+            row=2, col=1, secondary_y=False
+        )
+
+        # Row 2: Battery State of Charge (%) as filled area chart (purple) on secondary Y-axis
+        fig.add_trace(
+            go.Scatter(
+                x=dispatch_df['datetime'], 
+                y=dispatch_df['soc_percentage'], 
                 name="State of Charge",
                 mode="lines",
                 line=dict(color="purple"),
                 fill='tozeroy'
             ),
-            row=2, col=1, secondary_y=False
+            row=2, col=1, secondary_y=True
         )
         
         # Set layout properties
@@ -190,9 +200,9 @@ if submit_button:
         )
         
         # Configure Y-axes
-        fig.update_yaxes(title_text="Electricity Price (€ / MWh)", fixedrange=True, row=1, col=1, secondary_y=False)
-        fig.update_yaxes(title_text="BESS Power (MW)", fixedrange=True, row=1, col=1, secondary_y=True)
-        fig.update_yaxes(title_text="State of Charge (MWh)", fixedrange=True, row=2, col=1, secondary_y=False)
+        fig.update_yaxes(title_text="BESS Power (MW)", row=1, col=1)
+        fig.update_yaxes(title_text="Electricity Price (€ / MWh)", row=2, col=1, secondary_y=False)
+        fig.update_yaxes(title_text="State of Charge (%)", range=[0, 100], row=2, col=1, secondary_y=True)
         
         st.plotly_chart(fig, use_container_width=True)
     else:

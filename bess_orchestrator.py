@@ -81,7 +81,7 @@ def main():
                     dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
                     
                     # 2. Calculate financials
-                    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan)
+                    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch)
                     
                     # Serialization & Output
                     metrics_json = json.dumps(metrics)
@@ -89,6 +89,9 @@ def main():
                     # Lead Architect Addendum 2: Explicitly name the index before resetting
                     dispatch_df.index.name = 'datetime'
                     dispatch_df_reset = dispatch_df.reset_index()
+                    
+                    # Timezone Shift Fix (Leak 3): Re-localize to Europe/Amsterdam for frontend UI
+                    dispatch_df_reset['datetime'] = pd.to_datetime(dispatch_df_reset['datetime']).dt.tz_localize('UTC').dt.tz_convert('Europe/Amsterdam')
                     
                     # Format datetime as ISO string to prevent JSON serialization issues
                     dispatch_df_reset['datetime'] = dispatch_df_reset['datetime'].dt.strftime('%Y-%m-%dT%H:%M:%S')
