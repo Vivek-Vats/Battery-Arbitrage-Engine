@@ -19,21 +19,21 @@ st.title("Phase 6.0 BESS Arbitrage MVP Dashboard")
 DB_PATH = 'bess_data.db'
 
 # Sidebar Form
-with st.sidebar:
-    st.header("Job Configuration")
-    with st.form("bess_config_form"):
-        power_mw = st.number_input("Power (MW)", min_value=1.0, value=100.0, step=1.0)
-        energy_mwh = st.number_input("Energy (MWh)", min_value=1.0, value=200.0, step=1.0)
-        capex_per_kwh = st.number_input("CAPEX (€/kWh)", min_value=0.0, value=180.0, step=10.0)
-        opex_per_mw = st.number_input("OPEX (€/MW)", min_value=0.0, value=15000.0, step=1000.0)
-        wacc = st.number_input("WACC (%)", min_value=0.0, value=7.0, step=0.1)
-        lifespan = st.number_input("Lifespan (Years)", min_value=1, value=15, step=1)
-        grid_fee_import = st.number_input("Grid Fee Import (€/MWh)", min_value=0.0, value=15.0, step=1.0)
-        efficiency_store = st.number_input("Charge Efficiency (%)", value=93.0, max_value=100.0)
-        efficiency_dispatch = st.number_input("Discharge Efficiency (%)", value=93.0, max_value=100.0)
-        depth_of_discharge = st.number_input("Depth of Discharge (%)", value=90.0, max_value=100.0)
-        degradation_penalty = st.number_input("Degradation Penalty (€/MWh)", min_value=0.0, value=5.0)
-        submit_button = st.form_submit_button("Run Dispatch Optimization")
+st.sidebar.header("Job Configuration")
+with st.sidebar.form("bess_config_form"):
+    power_mw = st.number_input("Power (MW)", min_value=1.0, value=100.0, step=1.0)
+    energy_mwh = st.number_input("Energy (MWh)", min_value=1.0, value=200.0, step=1.0)
+    capex_per_kwh = st.number_input("CAPEX (€/kWh)", min_value=0.0, value=180.0, step=10.0)
+    opex_per_mw = st.number_input("OPEX (€/MW)", min_value=0.0, value=15000.0, step=1000.0)
+    wacc = st.number_input("WACC (%)", min_value=0.0, value=7.0, step=0.1)
+    lifespan = st.number_input("Lifespan (Years)", min_value=1, value=15, step=1)
+    expected_lifespan_cycles = st.number_input("Expected Lifespan (Cycles)", min_value=1000, value=6000, step=500)
+    grid_fee_import = st.number_input("Grid Fee Import (€/MWh)", min_value=0.0, value=15.0, step=1.0)
+    efficiency_store = st.number_input("Charge Efficiency (%)", value=93.0, max_value=100.0)
+    efficiency_dispatch = st.number_input("Discharge Efficiency (%)", value=93.0, max_value=100.0)
+    depth_of_discharge = st.number_input("Depth of Discharge (%)", value=90.0, max_value=100.0)
+    degradation_penalty = st.number_input("Degradation Penalty (€/MWh)", min_value=0.0, value=5.0)
+    submit_button = st.form_submit_button("Run Dispatch Optimization")
 
 if submit_button:
     job_id = str(uuid.uuid4())
@@ -42,9 +42,9 @@ if submit_button:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO job_queue (job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty, 'PENDING'))
+        INSERT INTO job_queue (job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, expected_lifespan_cycles, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, expected_lifespan_cycles, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty, 'PENDING'))
     conn.commit()
     conn.close()
     
@@ -100,23 +100,31 @@ if submit_button:
         # Calculate State of Charge as a percentage
         dispatch_df['soc_percentage'] = (dispatch_df['state_of_charge'] / energy_capacity) * 100
         
-        st.header("Financial KPIs")
-        col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            st.metric(label="Gross Revenue", value=f"€{metrics.get('Annual_Gross_Revenue_EUR', 0):,.2f}")
+            st.metric(label="Total CAPEX", value=f"€{metrics.get('Total_CAPEX_EUR', 0):,.2f}")
         with col2:
-            st.metric(label="LCOS", value=f"€{metrics.get('LCOS_EUR_per_MWh', 0):.2f} / MWh")
+            st.metric(label="Expected Lifespan", value=f"{metrics.get('Expected_Lifespan_Years', 0):.1f} Years")
         with col3:
-            st.metric(label="Simple Payback", value=f"{metrics.get('Simple_Payback_Years', metrics.get('payback_years', 0)):.2f} Years")
+            st.metric(label="Net Annual Profit", value=f"€{metrics.get('Net_Annual_Profit_EUR', 0):,.2f}")
         with col4:
             st.metric(label="Annual ROI", value=f"{metrics.get('Annual_ROI_Percentage', 0):.2f}%")
-        with col5:
-            st.metric(label="Equivalent Full Cycles", value=f"{metrics.get('Equivalent_Full_Cycles', 0):.1f} Cycles")
-        with col6:
-            st.metric(label="Annual Degradation Cost", value=f"€{metrics.get('Annual_Degradation_Cost_EUR', 0):.2f}")
             
-        st.header("Dispatch Timeseries Visualization")
+        st.write("")
+        col5, col6, col7, col8 = st.columns(4)
+        
+        with col5:
+            st.metric(label="LCOS", value=f"€{metrics.get('LCOS_EUR_per_MWh', 0):.2f} / MWh")
+        with col6:
+            st.metric(label="Average Spread", value=f"€{metrics.get('Average_Spread_EUR_per_MWh', 0):.2f} / MWh")
+        with col7:
+            st.metric(label="Equivalent Full Cycles", value=f"{metrics.get('Equivalent_Full_Cycles', 0):.1f} Cycles")
+        with col8:
+            st.metric(label="Annual Degradation Cost", value=f"€{metrics.get('Annual_Degradation_Cost_EUR', 0):,.2f}")
+            
+
         
         # Create figure with 2 rows, 1 column, shared X-axes
         # Top row: Dispatch Power only
@@ -179,7 +187,6 @@ if submit_button:
         
         # Set layout properties
         fig.update_layout(
-            title_text="BESS Optimal Dispatch & Electricity Price",
             hovermode="x unified",
             barmode="relative",
             height=750,

@@ -1,0 +1,695 @@
+2026-07-01 16:23:48,454 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 21:45:17,735 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 21:45:17,751 - ERROR - Error in orchestration polling loop: not enough values to unpack (expected 12, got 0)
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 73, in main
+    job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty = row
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 12, got 0)
+2026-07-01 21:45:54,656 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 21:45:54,656 - ERROR - Error in orchestration polling loop: not enough values to unpack (expected 12, got 0)
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 73, in main
+    job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty = row
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 12, got 0)
+2026-07-01 21:46:04,972 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 21:46:04,972 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-01 21:46:05,649 - INFO - Job job_1 optimization completed in 0.673 seconds.
+2026-07-01 21:46:05,672 - INFO - Job job_1 processed successfully.
+2026-07-01 21:46:23,446 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 21:46:23,446 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-01 21:46:24,051 - INFO - Job job_1 optimization completed in 0.603 seconds.
+2026-07-01 21:46:24,052 - INFO - Job job_1 processed successfully.
+2026-07-01 21:47:06,244 - INFO - Picked up job 3e407963-1bf6-4230-afe1-d65d91b2f15a. Status set to RUNNING.
+2026-07-01 21:47:06,314 - ERROR - Job 3e407963-1bf6-4230-afe1-d65d91b2f15a failed during execution: Snapshots must not be empty.
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 92, in main
+    dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 42, in optimize_dispatch
+    n.set_snapshots(prices_df_naive.index)
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pypsa\network\index.py", line 109, in set_snapshots
+    raise ValueError(msg)
+ValueError: Snapshots must not be empty.
+2026-07-01 22:37:29,113 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:37:29,114 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-01 22:37:29,718 - INFO - Job job_1 optimization completed in 0.602 seconds.
+2026-07-01 22:37:29,719 - INFO - Job job_1 processed successfully.
+2026-07-01 22:37:29,927 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:37:29,927 - INFO - Picked up job job_poison. Status set to RUNNING.
+2026-07-01 22:37:30,347 - ERROR - Job job_poison failed during execution: 'lithium_ion_bess'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 153, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 182, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'lithium_ion_bess'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 89, in main
+    dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 77, in optimize_dispatch
+    p_dispatch = n.storage_units_t.p_dispatch['lithium_ion_bess']
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\frame.py", line 4090, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3809, in get_loc
+    raise KeyError(key) from err
+KeyError: 'lithium_ion_bess'
+2026-07-01 22:38:02,582 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:38:02,583 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-01 22:38:03,168 - INFO - Job job_1 optimization completed in 0.584 seconds.
+2026-07-01 22:38:03,169 - INFO - Job job_1 processed successfully.
+2026-07-01 22:38:04,943 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:38:04,943 - INFO - Picked up job job_poison. Status set to RUNNING.
+2026-07-01 22:38:05,371 - ERROR - Job job_poison failed during execution: 'lithium_ion_bess'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 153, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 182, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'lithium_ion_bess'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 89, in main
+    dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 77, in optimize_dispatch
+    p_dispatch = n.storage_units_t.p_dispatch['lithium_ion_bess']
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\frame.py", line 4090, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3809, in get_loc
+    raise KeyError(key) from err
+KeyError: 'lithium_ion_bess'
+2026-07-01 22:43:26,049 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:43:26,050 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-01 22:43:26,665 - INFO - Job job_1 optimization completed in 0.614 seconds.
+2026-07-01 22:43:26,666 - INFO - Job job_1 processed successfully.
+2026-07-01 22:43:28,209 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:43:28,209 - INFO - Picked up job job_poison. Status set to RUNNING.
+2026-07-01 22:43:28,619 - ERROR - Job job_poison failed during execution: 'lithium_ion_bess'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 153, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 182, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'lithium_ion_bess'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 101, in main
+    dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 77, in optimize_dispatch
+    p_dispatch = n.storage_units_t.p_dispatch['lithium_ion_bess']
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\frame.py", line 4090, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3809, in get_loc
+    raise KeyError(key) from err
+KeyError: 'lithium_ion_bess'
+2026-07-01 22:43:28,941 - INFO - Graceful shutdown requested via OS signal. Finishing current job before exiting...
+2026-07-01 22:43:28,942 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:43:28,943 - INFO - Orchestrator shut down successfully.
+2026-07-01 22:43:51,553 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:43:51,553 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-01 22:43:52,154 - INFO - Job job_1 optimization completed in 0.598 seconds.
+2026-07-01 22:43:52,155 - INFO - Job job_1 processed successfully.
+2026-07-01 22:43:54,000 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:43:54,000 - INFO - Picked up job job_poison. Status set to RUNNING.
+2026-07-01 22:44:51,325 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:44:51,325 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-01 22:44:51,921 - INFO - Job job_1 optimization completed in 0.595 seconds.
+2026-07-01 22:44:51,923 - INFO - Job job_1 processed successfully.
+2026-07-01 22:44:53,353 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:44:53,353 - INFO - Picked up job job_poison. Status set to RUNNING.
+2026-07-01 22:44:53,775 - ERROR - Job job_poison failed during execution: 'lithium_ion_bess'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 153, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 182, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'lithium_ion_bess'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 101, in main
+    dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 77, in optimize_dispatch
+    p_dispatch = n.storage_units_t.p_dispatch['lithium_ion_bess']
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\frame.py", line 4090, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3809, in get_loc
+    raise KeyError(key) from err
+KeyError: 'lithium_ion_bess'
+2026-07-01 22:44:53,783 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:44:53,783 - ERROR - Error in orchestration polling loop: database is locked
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 76, in main
+    cursor.execute('''
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1187, in _execute_mock_call
+    raise result
+sqlite3.OperationalError: database is locked
+2026-07-01 22:44:55,785 - INFO - Graceful shutdown requested via OS signal. Finishing current job before exiting...
+2026-07-01 22:44:55,786 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 22:44:55,786 - INFO - Orchestrator shut down successfully.
+2026-07-01 22:50:59,372 - INFO - Picked up job c795d047-9166-4100-80fb-65a9a1f7bc39. Status set to RUNNING.
+2026-07-01 22:50:59,407 - ERROR - Job c795d047-9166-4100-80fb-65a9a1f7bc39 failed during execution: Snapshots must not be empty.
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 92, in main
+    df = pd.read_sql_query("SELECT * FROM day_ahead_prices", conn)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 42, in optimize_dispatch
+    n.set_snapshots(prices_df_naive.index)
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pypsa\network\index.py", line 109, in set_snapshots
+    raise ValueError(msg)
+ValueError: Snapshots must not be empty.
+2026-07-01 22:56:13,486 - INFO - Picked up job 45606782-7965-44fa-916d-230035a67228. Status set to RUNNING.
+2026-07-01 22:56:13,550 - ERROR - Job 45606782-7965-44fa-916d-230035a67228 failed during execution: Snapshots must not be empty.
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 92, in main
+    df = pd.read_sql_query("SELECT * FROM day_ahead_prices", conn)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 42, in optimize_dispatch
+    n.set_snapshots(prices_df_naive.index)
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pypsa\network\index.py", line 109, in set_snapshots
+    raise ValueError(msg)
+ValueError: Snapshots must not be empty.
+2026-07-01 23:01:17,658 - INFO - Picked up job c489a55b-c94e-44fb-acf9-4bec12156170. Status set to RUNNING.
+2026-07-01 23:01:17,725 - ERROR - Job c489a55b-c94e-44fb-acf9-4bec12156170 failed during execution: Snapshots must not be empty.
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 92, in main
+    df = pd.read_sql_query("SELECT * FROM day_ahead_prices", conn)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 42, in optimize_dispatch
+    n.set_snapshots(prices_df_naive.index)
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pypsa\network\index.py", line 109, in set_snapshots
+    raise ValueError(msg)
+ValueError: Snapshots must not be empty.
+2026-07-01 23:04:13,803 - INFO - Picked up job 48352a1b-2517-44e8-8057-bb45fd9051cb. Status set to RUNNING.
+2026-07-01 23:04:20,317 - INFO - Job 48352a1b-2517-44e8-8057-bb45fd9051cb optimization completed in 6.460 seconds.
+2026-07-01 23:04:20,786 - INFO - Job 48352a1b-2517-44e8-8057-bb45fd9051cb processed successfully.
+2026-07-01 23:09:50,828 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 23:09:50,830 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-01 23:09:51,401 - INFO - Job job_1 optimization completed in 0.570 seconds.
+2026-07-01 23:09:51,402 - INFO - Job job_1 processed successfully.
+2026-07-01 23:09:51,704 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 23:09:51,705 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-01 23:09:52,131 - INFO - Job job_1 optimization completed in 0.425 seconds.
+2026-07-01 23:09:52,132 - INFO - Job job_1 processed successfully.
+2026-07-01 23:09:52,579 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 23:09:52,579 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-01 23:09:53,008 - INFO - Job job_1 optimization completed in 0.428 seconds.
+2026-07-01 23:09:53,010 - INFO - Job job_1 processed successfully.
+2026-07-01 23:09:54,649 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 23:09:54,649 - INFO - Picked up job job_poison. Status set to RUNNING.
+2026-07-01 23:09:55,037 - ERROR - Job job_poison failed during execution: 'lithium_ion_bess'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 153, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 182, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'lithium_ion_bess'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 101, in main
+    dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 77, in optimize_dispatch
+    p_dispatch = n.storage_units_t.p_dispatch['lithium_ion_bess']
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\frame.py", line 4090, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3809, in get_loc
+    raise KeyError(key) from err
+KeyError: 'lithium_ion_bess'
+2026-07-01 23:09:55,043 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 23:09:55,043 - ERROR - Error in orchestration polling loop: database is locked
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 76, in main
+    cursor.execute('''
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1187, in _execute_mock_call
+    raise result
+sqlite3.OperationalError: database is locked
+2026-07-01 23:09:57,046 - INFO - Graceful shutdown requested via OS signal. Finishing current job before exiting...
+2026-07-01 23:09:57,048 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-01 23:09:57,048 - INFO - Orchestrator shut down successfully.
+2026-07-01 23:11:34,941 - INFO - Picked up job 3124a30c-c948-402e-a60e-8629942023a0. Status set to RUNNING.
+2026-07-01 23:11:40,939 - INFO - Job 3124a30c-c948-402e-a60e-8629942023a0 optimization completed in 5.847 seconds.
+2026-07-01 23:11:41,358 - INFO - Job 3124a30c-c948-402e-a60e-8629942023a0 processed successfully.
+2026-07-01 23:15:05,435 - INFO - Picked up job f2100384-3c1f-4b4e-8db5-1d1db0193c9e. Status set to RUNNING.
+2026-07-01 23:15:11,459 - INFO - Job f2100384-3c1f-4b4e-8db5-1d1db0193c9e optimization completed in 5.970 seconds.
+2026-07-01 23:15:11,884 - INFO - Job f2100384-3c1f-4b4e-8db5-1d1db0193c9e processed successfully.
+2026-07-02 11:43:36,516 - INFO - Picked up job b19234af-9d1b-4550-968c-d5ca7812852e. Status set to RUNNING.
+2026-07-02 11:43:42,865 - INFO - Job b19234af-9d1b-4550-968c-d5ca7812852e optimization completed in 6.212 seconds.
+2026-07-02 11:43:43,284 - INFO - Job b19234af-9d1b-4550-968c-d5ca7812852e processed successfully.
+2026-07-02 12:03:18,786 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 12:04:14,802 - INFO - Picked up job db71a7e1-4375-4c0c-8a41-40a049825874. Status set to RUNNING.
+2026-07-02 12:04:21,344 - INFO - Job db71a7e1-4375-4c0c-8a41-40a049825874 optimization completed in 6.485 seconds.
+2026-07-02 12:04:26,817 - INFO - Job db71a7e1-4375-4c0c-8a41-40a049825874 processed successfully.
+2026-07-02 13:07:20,536 - INFO - Picked up job 29367194-19f0-4ed9-8adc-945704a1fe28. Status set to RUNNING.
+2026-07-02 13:07:24,283 - INFO - Job 29367194-19f0-4ed9-8adc-945704a1fe28 optimization completed in 3.623 seconds.
+2026-07-02 13:07:24,456 - INFO - Job 29367194-19f0-4ed9-8adc-945704a1fe28 processed successfully.
+2026-07-02 13:08:08,479 - INFO - Picked up job 0d2d7246-b86f-46ed-ae0f-59a8bf88e8c3. Status set to RUNNING.
+2026-07-02 13:08:11,730 - INFO - Job 0d2d7246-b86f-46ed-ae0f-59a8bf88e8c3 optimization completed in 3.157 seconds.
+2026-07-02 13:08:11,902 - INFO - Job 0d2d7246-b86f-46ed-ae0f-59a8bf88e8c3 processed successfully.
+2026-07-02 13:08:39,919 - INFO - Picked up job dc403b1c-dc8d-4a5a-b20c-a4f7a567e38f. Status set to RUNNING.
+2026-07-02 13:08:43,306 - INFO - Job dc403b1c-dc8d-4a5a-b20c-a4f7a567e38f optimization completed in 3.267 seconds.
+2026-07-02 13:08:43,628 - INFO - Job dc403b1c-dc8d-4a5a-b20c-a4f7a567e38f processed successfully.
+2026-07-02 14:53:57,894 - INFO - Picked up job 5d9d51a2-c46a-4c02-bf3b-dd02f9c5a696. Status set to RUNNING.
+2026-07-02 14:54:01,325 - INFO - Job 5d9d51a2-c46a-4c02-bf3b-dd02f9c5a696 optimization completed in 3.403 seconds.
+2026-07-02 14:54:01,493 - INFO - Job 5d9d51a2-c46a-4c02-bf3b-dd02f9c5a696 processed successfully.
+2026-07-02 14:54:31,509 - INFO - Picked up job e1f52f03-3571-4eb7-87ad-67f9f5178779. Status set to RUNNING.
+2026-07-02 14:54:34,622 - INFO - Job e1f52f03-3571-4eb7-87ad-67f9f5178779 optimization completed in 3.085 seconds.
+2026-07-02 14:54:34,805 - INFO - Job e1f52f03-3571-4eb7-87ad-67f9f5178779 processed successfully.
+2026-07-02 14:54:56,821 - INFO - Picked up job f98ea5ec-f04a-4bea-9570-ee81a9b1ff05. Status set to RUNNING.
+2026-07-02 14:55:00,228 - INFO - Job f98ea5ec-f04a-4bea-9570-ee81a9b1ff05 optimization completed in 3.381 seconds.
+2026-07-02 14:55:00,406 - INFO - Job f98ea5ec-f04a-4bea-9570-ee81a9b1ff05 processed successfully.
+2026-07-02 14:55:14,419 - INFO - Picked up job a5afafd5-cc68-4b1c-8e39-82e87c06092a. Status set to RUNNING.
+2026-07-02 14:55:17,615 - INFO - Job a5afafd5-cc68-4b1c-8e39-82e87c06092a optimization completed in 3.163 seconds.
+2026-07-02 14:55:17,830 - INFO - Job a5afafd5-cc68-4b1c-8e39-82e87c06092a processed successfully.
+2026-07-02 14:55:37,843 - INFO - Picked up job 404c373a-f37b-414b-bbdd-8134836115bb. Status set to RUNNING.
+2026-07-02 14:55:40,962 - INFO - Job 404c373a-f37b-414b-bbdd-8134836115bb optimization completed in 3.090 seconds.
+2026-07-02 14:55:41,193 - INFO - Job 404c373a-f37b-414b-bbdd-8134836115bb processed successfully.
+2026-07-02 14:55:53,202 - INFO - Picked up job 6529a494-b30b-4268-a126-0515186bf67f. Status set to RUNNING.
+2026-07-02 14:55:56,512 - INFO - Job 6529a494-b30b-4268-a126-0515186bf67f optimization completed in 3.284 seconds.
+2026-07-02 14:55:56,673 - INFO - Job 6529a494-b30b-4268-a126-0515186bf67f processed successfully.
+2026-07-02 14:56:08,683 - INFO - Picked up job 61c15bd8-8c17-4c5a-b023-6c35a29ac5c8. Status set to RUNNING.
+2026-07-02 14:56:12,127 - INFO - Job 61c15bd8-8c17-4c5a-b023-6c35a29ac5c8 optimization completed in 3.330 seconds.
+2026-07-02 14:56:12,289 - INFO - Job 61c15bd8-8c17-4c5a-b023-6c35a29ac5c8 processed successfully.
+2026-07-02 14:56:26,302 - INFO - Picked up job db89ed7c-705b-4313-8e93-01b960970664. Status set to RUNNING.
+2026-07-02 14:56:29,456 - INFO - Job db89ed7c-705b-4313-8e93-01b960970664 optimization completed in 3.056 seconds.
+2026-07-02 14:56:29,620 - INFO - Job db89ed7c-705b-4313-8e93-01b960970664 processed successfully.
+2026-07-02 14:59:45,708 - INFO - Picked up job 5d92b755-d900-44a9-8fc2-4741134ddc22. Status set to RUNNING.
+2026-07-02 14:59:51,562 - INFO - Job 5d92b755-d900-44a9-8fc2-4741134ddc22 optimization completed in 5.797 seconds.
+2026-07-02 14:59:51,971 - INFO - Job 5d92b755-d900-44a9-8fc2-4741134ddc22 processed successfully.
+2026-07-02 15:00:01,982 - INFO - Picked up job 9a198fe6-323e-428d-9cc7-82e53c25940c. Status set to RUNNING.
+2026-07-02 15:00:07,782 - INFO - Job 9a198fe6-323e-428d-9cc7-82e53c25940c optimization completed in 5.753 seconds.
+2026-07-02 15:00:08,193 - INFO - Job 9a198fe6-323e-428d-9cc7-82e53c25940c processed successfully.
+2026-07-02 15:00:22,208 - INFO - Picked up job 164e765a-3f20-4e10-9132-a516bba515a7. Status set to RUNNING.
+2026-07-02 15:00:28,128 - INFO - Job 164e765a-3f20-4e10-9132-a516bba515a7 optimization completed in 5.875 seconds.
+2026-07-02 15:00:28,538 - INFO - Job 164e765a-3f20-4e10-9132-a516bba515a7 processed successfully.
+2026-07-02 15:00:42,557 - INFO - Picked up job 0c75015c-ca9f-49c6-a245-c1a03acc148f. Status set to RUNNING.
+2026-07-02 15:00:48,525 - INFO - Job 0c75015c-ca9f-49c6-a245-c1a03acc148f optimization completed in 5.919 seconds.
+2026-07-02 15:00:48,939 - INFO - Job 0c75015c-ca9f-49c6-a245-c1a03acc148f processed successfully.
+2026-07-02 15:00:58,958 - INFO - Picked up job 2ec6b5ef-0c94-49a5-b441-462f238728bc. Status set to RUNNING.
+2026-07-02 15:01:04,698 - INFO - Job 2ec6b5ef-0c94-49a5-b441-462f238728bc optimization completed in 5.692 seconds.
+2026-07-02 15:01:05,222 - INFO - Job 2ec6b5ef-0c94-49a5-b441-462f238728bc processed successfully.
+2026-07-02 15:01:17,228 - INFO - Picked up job e6b83299-a469-425e-921e-06f87b2d2795. Status set to RUNNING.
+2026-07-02 15:01:23,130 - INFO - Job e6b83299-a469-425e-921e-06f87b2d2795 optimization completed in 5.848 seconds.
+2026-07-02 15:01:23,535 - INFO - Job e6b83299-a469-425e-921e-06f87b2d2795 processed successfully.
+2026-07-02 15:01:33,560 - INFO - Picked up job 6f424e08-bc2e-4295-8fad-430ab31469d6. Status set to RUNNING.
+2026-07-02 15:01:39,424 - INFO - Job 6f424e08-bc2e-4295-8fad-430ab31469d6 optimization completed in 5.717 seconds.
+2026-07-02 15:01:39,838 - INFO - Job 6f424e08-bc2e-4295-8fad-430ab31469d6 processed successfully.
+2026-07-02 15:01:49,845 - INFO - Picked up job 5935dde1-1f14-4724-a658-5a8a7e843922. Status set to RUNNING.
+2026-07-02 15:01:55,739 - INFO - Job 5935dde1-1f14-4724-a658-5a8a7e843922 optimization completed in 5.734 seconds.
+2026-07-02 15:01:56,159 - INFO - Job 5935dde1-1f14-4724-a658-5a8a7e843922 processed successfully.
+2026-07-02 15:02:06,172 - INFO - Picked up job 5631398a-6a52-4793-a1e8-3a0cb48b0307. Status set to RUNNING.
+2026-07-02 15:02:12,113 - INFO - Job 5631398a-6a52-4793-a1e8-3a0cb48b0307 optimization completed in 5.895 seconds.
+2026-07-02 15:02:12,520 - INFO - Job 5631398a-6a52-4793-a1e8-3a0cb48b0307 processed successfully.
+2026-07-02 15:21:57,069 - INFO - Picked up job 3cde6d27-1a92-4b5c-9b3b-8fdfad98f010. Status set to RUNNING.
+2026-07-02 15:22:02,962 - INFO - Job 3cde6d27-1a92-4b5c-9b3b-8fdfad98f010 optimization completed in 5.843 seconds.
+2026-07-02 15:22:03,371 - INFO - Job 3cde6d27-1a92-4b5c-9b3b-8fdfad98f010 processed successfully.
+2026-07-02 15:22:37,403 - INFO - Picked up job efb6456b-029f-40c1-bb8e-16a6c285989f. Status set to RUNNING.
+2026-07-02 15:22:43,245 - INFO - Job efb6456b-029f-40c1-bb8e-16a6c285989f optimization completed in 5.798 seconds.
+2026-07-02 15:22:43,652 - INFO - Job efb6456b-029f-40c1-bb8e-16a6c285989f processed successfully.
+2026-07-02 15:22:59,672 - INFO - Picked up job d0e57796-b712-40fd-bee1-6bcdb3b5ffa2. Status set to RUNNING.
+2026-07-02 15:23:05,579 - INFO - Job d0e57796-b712-40fd-bee1-6bcdb3b5ffa2 optimization completed in 5.853 seconds.
+2026-07-02 15:23:06,091 - INFO - Job d0e57796-b712-40fd-bee1-6bcdb3b5ffa2 processed successfully.
+2026-07-02 15:43:28,756 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:43:28,756 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-02 15:43:29,525 - INFO - Job job_1 optimization completed in 0.767 seconds.
+2026-07-02 15:43:29,525 - ERROR - Job job_1 failed during execution: calculate_financials() takes 9 positional arguments but 10 were given
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 107, in main
+    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch, expected_lifespan_cycles)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: calculate_financials() takes 9 positional arguments but 10 were given
+2026-07-02 15:43:29,572 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:43:29,572 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-02 15:43:30,012 - INFO - Job job_1 optimization completed in 0.439 seconds.
+2026-07-02 15:43:30,013 - ERROR - Job job_1 failed during execution: calculate_financials() takes 9 positional arguments but 10 were given
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 107, in main
+    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch, expected_lifespan_cycles)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: calculate_financials() takes 9 positional arguments but 10 were given
+2026-07-02 15:43:31,553 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:43:31,553 - INFO - Picked up job job_poison. Status set to RUNNING.
+2026-07-02 15:43:32,023 - ERROR - Job job_poison failed during execution: 'lithium_ion_bess'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 153, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 182, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'lithium_ion_bess'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 102, in main
+    dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 77, in optimize_dispatch
+    p_dispatch = n.storage_units_t.p_dispatch['lithium_ion_bess']
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\frame.py", line 4090, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3809, in get_loc
+    raise KeyError(key) from err
+KeyError: 'lithium_ion_bess'
+2026-07-02 15:43:32,057 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:43:32,058 - ERROR - Error in orchestration polling loop: database is locked
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 77, in main
+    cursor.execute('''
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1187, in _execute_mock_call
+    raise result
+sqlite3.OperationalError: database is locked
+2026-07-02 15:43:34,070 - INFO - Graceful shutdown requested via OS signal. Finishing current job before exiting...
+2026-07-02 15:43:34,072 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:43:34,073 - INFO - Orchestrator shut down successfully.
+2026-07-02 15:43:34,074 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:43:34,074 - INFO - Orchestrator shut down successfully.
+2026-07-02 15:44:31,457 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:44:31,459 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-02 15:44:32,047 - INFO - Job job_1 optimization completed in 0.587 seconds.
+2026-07-02 15:44:32,048 - INFO - Job job_1 processed successfully.
+2026-07-02 15:44:32,055 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:44:32,055 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-02 15:44:32,498 - INFO - Job job_1 optimization completed in 0.443 seconds.
+2026-07-02 15:44:32,499 - INFO - Job job_1 processed successfully.
+2026-07-02 15:44:34,252 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:44:34,252 - INFO - Picked up job job_poison. Status set to RUNNING.
+2026-07-02 15:44:34,681 - ERROR - Job job_poison failed during execution: 'lithium_ion_bess'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 153, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 182, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'lithium_ion_bess'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 102, in main
+    dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 77, in optimize_dispatch
+    p_dispatch = n.storage_units_t.p_dispatch['lithium_ion_bess']
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\frame.py", line 4090, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3809, in get_loc
+    raise KeyError(key) from err
+KeyError: 'lithium_ion_bess'
+2026-07-02 15:44:34,687 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:44:34,687 - ERROR - Error in orchestration polling loop: database is locked
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 77, in main
+    cursor.execute('''
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1187, in _execute_mock_call
+    raise result
+sqlite3.OperationalError: database is locked
+2026-07-02 15:44:36,689 - INFO - Graceful shutdown requested via OS signal. Finishing current job before exiting...
+2026-07-02 15:44:36,691 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:44:36,691 - INFO - Orchestrator shut down successfully.
+2026-07-02 15:44:36,693 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:44:36,693 - INFO - Orchestrator shut down successfully.
+2026-07-02 15:53:21,886 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:53:21,886 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-02 15:53:22,454 - INFO - Job job_1 optimization completed in 0.567 seconds.
+2026-07-02 15:53:22,462 - ERROR - Job job_1 failed during execution: unsupported operand type(s) for /: 'float' and 'NoneType'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 107, in main
+    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch, expected_lifespan_cycles)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\finance_engine.py", line 43, in calculate_financials
+    annual_degradation_cost = (efc / expected_lifespan_cycles) * TOTAL_CAPEX
+                               ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for /: 'float' and 'NoneType'
+2026-07-02 15:53:23,231 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:53:23,232 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-02 15:53:24,050 - INFO - Job job_1 optimization completed in 0.817 seconds.
+2026-07-02 15:53:24,051 - ERROR - Job job_1 failed during execution: unsupported operand type(s) for /: 'float' and 'NoneType'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 107, in main
+    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch, expected_lifespan_cycles)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\finance_engine.py", line 43, in calculate_financials
+    annual_degradation_cost = (efc / expected_lifespan_cycles) * TOTAL_CAPEX
+                               ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for /: 'float' and 'NoneType'
+2026-07-02 15:53:25,478 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:53:25,479 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-02 15:53:26,286 - INFO - Job job_1 optimization completed in 0.806 seconds.
+2026-07-02 15:53:26,286 - ERROR - Job job_1 failed during execution: unsupported operand type(s) for /: 'float' and 'NoneType'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 107, in main
+    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch, expected_lifespan_cycles)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\finance_engine.py", line 43, in calculate_financials
+    annual_degradation_cost = (efc / expected_lifespan_cycles) * TOTAL_CAPEX
+                               ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for /: 'float' and 'NoneType'
+2026-07-02 15:53:27,993 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:53:27,993 - INFO - Picked up job job_poison. Status set to RUNNING.
+2026-07-02 15:53:28,741 - ERROR - Job job_poison failed during execution: 'lithium_ion_bess'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 153, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 182, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'lithium_ion_bess'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 102, in main
+    dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 77, in optimize_dispatch
+    p_dispatch = n.storage_units_t.p_dispatch['lithium_ion_bess']
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\frame.py", line 4090, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3809, in get_loc
+    raise KeyError(key) from err
+KeyError: 'lithium_ion_bess'
+2026-07-02 15:53:28,755 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:53:28,755 - ERROR - Error in orchestration polling loop: database is locked
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 77, in main
+    cursor.execute('''
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1187, in _execute_mock_call
+    raise result
+sqlite3.OperationalError: database is locked
+2026-07-02 15:53:30,758 - INFO - Graceful shutdown requested via OS signal. Finishing current job before exiting...
+2026-07-02 15:53:30,762 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:53:30,762 - INFO - Orchestrator shut down successfully.
+2026-07-02 15:54:47,657 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:54:47,658 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-02 15:54:48,242 - INFO - Job job_1 optimization completed in 0.582 seconds.
+2026-07-02 15:54:48,242 - ERROR - Job job_1 failed during execution: unsupported operand type(s) for /: 'float' and 'NoneType'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 107, in main
+    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch, expected_lifespan_cycles)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\finance_engine.py", line 43, in calculate_financials
+    annual_degradation_cost = (efc / expected_lifespan_cycles) * TOTAL_CAPEX
+                               ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for /: 'float' and 'NoneType'
+2026-07-02 15:54:48,569 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:54:48,569 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-02 15:54:49,000 - INFO - Job job_1 optimization completed in 0.430 seconds.
+2026-07-02 15:54:49,001 - ERROR - Job job_1 failed during execution: unsupported operand type(s) for /: 'float' and 'NoneType'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 107, in main
+    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch, expected_lifespan_cycles)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\finance_engine.py", line 43, in calculate_financials
+    annual_degradation_cost = (efc / expected_lifespan_cycles) * TOTAL_CAPEX
+                               ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for /: 'float' and 'NoneType'
+2026-07-02 15:55:18,761 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:55:18,761 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-02 15:55:19,365 - INFO - Job job_1 optimization completed in 0.602 seconds.
+2026-07-02 15:55:19,366 - ERROR - Job job_1 failed during execution: unsupported operand type(s) for /: 'float' and 'NoneType'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 107, in main
+    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch, expected_lifespan_cycles)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\finance_engine.py", line 43, in calculate_financials
+    annual_degradation_cost = (efc / expected_lifespan_cycles) * TOTAL_CAPEX
+                               ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for /: 'float' and 'NoneType'
+2026-07-02 15:55:19,705 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:55:19,706 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-02 15:55:20,167 - INFO - Job job_1 optimization completed in 0.460 seconds.
+2026-07-02 15:55:20,168 - ERROR - Job job_1 failed during execution: unsupported operand type(s) for /: 'float' and 'NoneType'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 107, in main
+    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch, expected_lifespan_cycles)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\finance_engine.py", line 43, in calculate_financials
+    annual_degradation_cost = (efc / expected_lifespan_cycles) * TOTAL_CAPEX
+                               ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for /: 'float' and 'NoneType'
+2026-07-02 15:55:20,650 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:55:20,650 - INFO - Picked up job job_1. Status set to RUNNING.
+2026-07-02 15:55:21,093 - INFO - Job job_1 optimization completed in 0.442 seconds.
+2026-07-02 15:55:21,095 - INFO - Job job_1 processed successfully.
+2026-07-02 15:55:22,756 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:55:22,757 - INFO - Picked up job job_poison. Status set to RUNNING.
+2026-07-02 15:55:23,176 - ERROR - Job job_poison failed during execution: 'lithium_ion_bess'
+Traceback (most recent call last):
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 153, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 182, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'lithium_ion_bess'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 102, in main
+    dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\quant_engine.py", line 77, in optimize_dispatch
+    p_dispatch = n.storage_units_t.p_dispatch['lithium_ion_bess']
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\frame.py", line 4090, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexes\base.py", line 3809, in get_loc
+    raise KeyError(key) from err
+KeyError: 'lithium_ion_bess'
+2026-07-02 15:55:23,183 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:55:23,183 - ERROR - Error in orchestration polling loop: database is locked
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 77, in main
+    cursor.execute('''
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\unittest\mock.py", line 1187, in _execute_mock_call
+    raise result
+sqlite3.OperationalError: database is locked
+2026-07-02 15:55:25,185 - INFO - Graceful shutdown requested via OS signal. Finishing current job before exiting...
+2026-07-02 15:55:25,186 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 15:55:25,186 - INFO - Orchestrator shut down successfully.
+2026-07-02 16:01:00,154 - INFO - Starting BESS Orchestrator. Polling for jobs...
+2026-07-02 16:02:24,188 - INFO - Picked up job b32973eb-1ace-48fb-b88a-5171db9b577f. Status set to RUNNING.
+2026-07-02 16:02:24,193 - ERROR - Job b32973eb-1ace-48fb-b88a-5171db9b577f failed during execution: Execution failed on sql 'SELECT * FROM day_ahead_prices': no such table: day_ahead_prices
+Traceback (most recent call last):
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\io\sql.py", line 2675, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such table: day_ahead_prices
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\vatsv\OneDrive\Desktop\Energy_Transition_Projects\Battery_Arbitrage_Engine\bess_orchestrator.py", line 93, in main
+    df = pd.read_sql_query("SELECT * FROM day_ahead_prices", conn)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\io\sql.py", line 2739, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vatsv\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\io\sql.py", line 2687, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM day_ahead_prices': no such table: day_ahead_prices
+2026-07-02 16:08:38,343 - INFO - Picked up job 51c5de7d-8560-49b5-96e2-7bb2c624f3b8. Status set to RUNNING.
+2026-07-02 16:08:44,623 - INFO - Job 51c5de7d-8560-49b5-96e2-7bb2c624f3b8 optimization completed in 6.222 seconds.
+2026-07-02 16:08:45,094 - INFO - Job 51c5de7d-8560-49b5-96e2-7bb2c624f3b8 processed successfully.
+2026-07-02 16:09:13,125 - INFO - Picked up job 73c935a3-cae4-4f91-8d44-420ce16860a8. Status set to RUNNING.
+2026-07-02 16:09:19,111 - INFO - Job 73c935a3-cae4-4f91-8d44-420ce16860a8 optimization completed in 5.826 seconds.
+2026-07-02 16:09:19,527 - INFO - Job 73c935a3-cae4-4f91-8d44-420ce16860a8 processed successfully.
+2026-07-02 16:09:41,547 - INFO - Picked up job 0d9d6bbd-d995-4eea-8fd3-4bec6d7d61ca. Status set to RUNNING.
+2026-07-02 16:09:47,629 - INFO - Job 0d9d6bbd-d995-4eea-8fd3-4bec6d7d61ca optimization completed in 5.937 seconds.
+2026-07-02 16:09:48,041 - INFO - Job 0d9d6bbd-d995-4eea-8fd3-4bec6d7d61ca processed successfully.
+2026-07-02 16:12:46,107 - INFO - Picked up job 42040d55-3226-4126-bec7-f4c0e2c2f8a3. Status set to RUNNING.
+2026-07-02 16:12:52,155 - INFO - Job 42040d55-3226-4126-bec7-f4c0e2c2f8a3 optimization completed in 5.993 seconds.

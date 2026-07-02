@@ -2,13 +2,32 @@ import sqlite3
 import time
 import json
 import logging
+import logging.handlers
 import pandas as pd
+import signal
+import sys
 import quant_engine
 import finance_engine
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+file_handler = logging.handlers.RotatingFileHandler('bess_system.log', maxBytes=5*1024*1024, backupCount=3)
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+
+shutdown_requested = False
+
+def signal_handler(signum, frame):
+    global shutdown_requested
+    logger.info("Graceful shutdown requested via OS signal. Finishing current job before exiting...")
+    shutdown_requested = True
 
 def init_db(conn):
     """Ensure required tables exist."""
@@ -27,6 +46,7 @@ def init_db(conn):
             efficiency_dispatch REAL,
             depth_of_discharge REAL,
             degradation_penalty REAL,
+            expected_lifespan_cycles REAL,
             status TEXT
         )
     ''')
@@ -45,26 +65,26 @@ def main():
     init_db(conn)
 
     logger.info("Starting BESS Orchestrator. Polling for jobs...")
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
-    while True:
+    while not shutdown_requested:
         try:
             cursor = conn.cursor()
             
-            # Poll for a pending job
+            # Atomic Concurrency Locking: Poll and lock a pending job in one transaction
             cursor.execute('''
-                SELECT job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty
-                FROM job_queue 
-                WHERE status = 'PENDING' 
-                LIMIT 1
+                UPDATE job_queue 
+                SET status = 'RUNNING' 
+                WHERE job_id = (SELECT job_id FROM job_queue WHERE status = 'PENDING' LIMIT 1)
+                RETURNING job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty, expected_lifespan_cycles
             ''')
             row = cursor.fetchone()
+            conn.commit()
             
             if row:
-                job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty = row
-                
-                # Transaction Locking: immediately update status to 'RUNNING'
-                cursor.execute("UPDATE job_queue SET status = 'RUNNING' WHERE job_id = ?", (job_id,))
-                conn.commit()
+                job_id, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty, expected_lifespan_cycles = row
                 
                 logger.info(f"Picked up job {job_id}. Status set to RUNNING.")
                 
@@ -78,10 +98,13 @@ def main():
                     
                     # Domain Execution
                     # 1. Optimize dispatch
+                    start_time = time.perf_counter()
                     dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
+                    elapsed_time = time.perf_counter() - start_time
+                    logger.info(f"Job {job_id} optimization completed in {elapsed_time:.3f} seconds.")
                     
                     # 2. Calculate financials
-                    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch)
+                    metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch, expected_lifespan_cycles)
                     
                     # Serialization & Output
                     metrics_json = json.dumps(metrics)
@@ -118,6 +141,8 @@ def main():
             logger.error(f"Error in orchestration polling loop: {e}", exc_info=True)
             
         time.sleep(2)
+        
+    logger.info("Orchestrator shut down successfully.")
 
 if __name__ == "__main__":
     main()

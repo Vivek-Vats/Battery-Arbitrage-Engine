@@ -1,6 +1,6 @@
 import pandas as pd
 
-def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan_years, grid_fee_import, efficiency_dispatch):
+def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan_years, grid_fee_import, efficiency_dispatch, expected_lifespan_cycles=6000.0):
     time_step_hours = 0.25
     
     # Calculate Total CAPEX and Annual OPEX based on new energy-centric valuation
@@ -15,6 +15,7 @@ def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_
     
     # Calculate Annual Delivered MWh
     annual_delivered_mwh = dispatch_df['p_dispatch'].sum() * time_step_hours
+    average_spread = annual_gross_revenue / annual_delivered_mwh if annual_delivered_mwh > 0 else 0
     
     # Convert WACC from percentage to decimal
     wacc_decimal = wacc / 100.0
@@ -39,7 +40,8 @@ def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_
     eff_dispatch_decimal = efficiency_dispatch / 100.0
     internal_dc_throughput_mwh = (dispatch_df['p_dispatch'].sum() * time_step_hours) / eff_dispatch_decimal
     efc = internal_dc_throughput_mwh / energy_mwh
-    annual_degradation_cost = (efc / 6000) * TOTAL_CAPEX
+    annual_degradation_cost = (efc / expected_lifespan_cycles) * TOTAL_CAPEX
+    expected_physical_lifespan = expected_lifespan_cycles / efc if efc > 0 else float('inf')
     net_annual_cash_flow -= annual_degradation_cost
     
     # Simple Payback Period
@@ -53,10 +55,14 @@ def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_
     
     # Return KPI dictionary
     return {
-        'Annual_Gross_Revenue_EUR': annual_gross_revenue,
-        'LCOS_EUR_per_MWh': lcos,
-        'Simple_Payback_Years': simple_payback_period,
-        'Annual_ROI_Percentage': annual_roi,
-        'Equivalent_Full_Cycles': efc,
-        'Annual_Degradation_Cost_EUR': annual_degradation_cost
+        'Annual_Gross_Revenue_EUR': float(annual_gross_revenue),
+        'LCOS_EUR_per_MWh': float(lcos),
+        'Simple_Payback_Years': float(simple_payback_period),
+        'Annual_ROI_Percentage': float(annual_roi),
+        'Equivalent_Full_Cycles': float(efc),
+        'Annual_Degradation_Cost_EUR': float(annual_degradation_cost),
+        'Net_Annual_Profit_EUR': float(net_annual_cash_flow),
+        'Total_CAPEX_EUR': float(TOTAL_CAPEX),
+        'Average_Spread_EUR_per_MWh': float(average_spread),
+        'Expected_Lifespan_Years': float(expected_physical_lifespan)
     }
