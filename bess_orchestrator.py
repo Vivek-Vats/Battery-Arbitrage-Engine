@@ -35,6 +35,8 @@ def init_db(conn):
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS job_queue (
             job_id TEXT PRIMARY KEY,
+            scenario_name TEXT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             power_mw REAL,
             energy_mwh REAL,
             capex_per_kwh REAL,
