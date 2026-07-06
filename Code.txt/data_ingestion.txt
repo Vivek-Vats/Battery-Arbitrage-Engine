@@ -26,22 +26,6 @@ def fetch_da_prices(start, end, country_code):
 def fetch_imb_prices(start, end, country_code):
     return client.query_imbalance_prices(country_code, start=start, end=end)
 
-@retry(
-    wait=wait_exponential_jitter(initial=1, max=60),
-    stop=stop_after_attempt(5),
-    retry=retry_if_exception_type(Exception)
-)
-def fetch_load_forecast(start, end, country_code):
-    return client.query_load_forecast(country_code, start=start, end=end)
-
-@retry(
-    wait=wait_exponential_jitter(initial=1, max=60),
-    stop=stop_after_attempt(5),
-    retry=retry_if_exception_type(Exception)
-)
-def fetch_wind_solar_forecast(start, end, country_code):
-    return client.query_wind_and_solar_forecast(country_code, start=start, end=end)
-
 def main():
     country_code = 'NL'
     
@@ -58,8 +42,6 @@ def main():
     
     da_dfs = []
     imb_dfs = []
-    load_dfs = []
-    ws_dfs = []
     
     for start_str, end_str in dates:
         start = pd.Timestamp(start_str, tz='Europe/Amsterdam')
@@ -72,25 +54,11 @@ def main():
             imb = fetch_imb_prices(start, end, country_code)
             imb_dfs.append(imb)
         except Exception as e:
-            print(f"Error fetching price data for {start_str}-{end_str}: {e}")
-            
-        try:
-            load = fetch_load_forecast(start, end, country_code)
-            load_dfs.append(load)
-        except Exception as e:
-            print(f"Error fetching load forecast for {start_str}-{end_str}: {e}")
-            
-        try:
-            ws = fetch_wind_solar_forecast(start, end, country_code)
-            ws_dfs.append(ws)
-        except Exception as e:
-            print(f"Error fetching wind/solar forecast for {start_str}-{end_str}: {e}")
+            print(f"Error fetching data for {start_str}-{end_str}: {e}")
             
     # Combine
     da_df = pd.concat(da_dfs)
     imb_df = pd.concat(imb_dfs)
-    load_df = pd.concat(load_dfs)
-    ws_df = pd.concat(ws_dfs)
     
     # Cleaning DA
     da_df = da_df.tz_convert('UTC')
@@ -114,18 +82,6 @@ def main():
         
     imb_df = imb_series.to_frame(name='imbalance_price_15m')
     
-    # Cleaning Load Forecast
-    load_df = load_df.tz_convert('UTC')
-    load_df = load_df[~load_df.index.duplicated(keep='first')]
-    if isinstance(load_df, pd.Series):
-        load_df = load_df.to_frame(name='Load Forecast')
-    else:
-        load_df.columns = ['Load Forecast']
-        
-    # Cleaning Wind/Solar Forecast
-    ws_df = ws_df.tz_convert('UTC')
-    ws_df = ws_df[~ws_df.index.duplicated(keep='first')]
-    
     # Create continuous 15-min spine
     start_utc = pd.Timestamp('2023-01-01', tz='Europe/Amsterdam').tz_convert('UTC')
     end_utc = pd.Timestamp('2026-07-01', tz='Europe/Amsterdam').tz_convert('UTC') - pd.Timedelta(minutes=15)
@@ -142,22 +98,10 @@ def main():
     imb_df = imb_df.reindex(spine)
     imb_df = imb_df.ffill().bfill()
     
-    # Reindex Load Forecast
-    load_df = load_df.reindex(spine)
-    load_df = load_df.ffill().bfill()
-    
-    # Reindex Wind/Solar Forecast
-    ws_df = ws_df.reindex(spine)
-    ws_df = ws_df.ffill().bfill()
-    
     # Join into unified DataFrame
     df = pd.DataFrame(index=spine)
     df['da_price_actual'] = da_df['da_price_actual']
     df['imbalance_price_15m'] = imb_df['imbalance_price_15m']
-    df['Load Forecast'] = load_df['Load Forecast']
-    for col in ['Solar', 'Wind Onshore', 'Wind Offshore']:
-        if col in ws_df.columns:
-            df[col] = ws_df[col]
     
     # Strip timezone for sqlite
     df.index = df.index.tz_localize(None)

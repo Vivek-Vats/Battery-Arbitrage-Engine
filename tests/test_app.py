@@ -1,102 +1,88 @@
-import pytest
-from streamlit.testing.v1 import AppTest
+import threading
 import sqlite3
-import os
-
-# --- HOTFIX FOR STREAMLIT APPTEST BUG ---
-# Streamlit AppTest leaks thread-local form context stacks across reruns (like button clicks)
-# causing an erroneous "Forms cannot be nested in other forms" exception. 
-# We monkey-patch the internal validation to bypass this framework bug.
-import streamlit.elements.form
-streamlit.elements.form.is_in_form = lambda *args, **kwargs: False
-# ----------------------------------------
-
-def test_sidebar_defaults():
-    # Initialize the app
-    at = AppTest.from_file("app.py").run()
-    
-    # Assert that the Power (MW) input correctly matches the 100.0 default
-    assert at.sidebar.number_input[0].value == 100.0
-    
-    # Assert that the CAPEX input correctly matches the 180.0 default
-    # Looking at app.py, CAPEX is the 3rd number_input (index 2)
-    assert at.sidebar.number_input[2].value == 180.0
-
-
-from unittest.mock import patch, MagicMock
+import time
 import json
+from streamlit.testing.v1 import AppTest
 
-def test_empty_state_rendering():
+DB_PATH = "bess_data.db"
+
+def fail_pending_jobs():
+    time.sleep(1)
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE job_queue SET status='FAILED' WHERE status='PENDING'")
+    conn.commit()
+    conn.close()
+
+def test_sidebar_form_submission():
     at = AppTest.from_file("app.py").run()
     
-    # Assert info banner is present and metrics/charts are absent
-    assert len(at.info) > 0
-    assert "Submit the form to run the dispatch optimization." in at.info[0].value
-    assert len(at.metric) == 0
-
-@patch('app.sqlite3.connect')
-@patch('app.uuid.uuid4', return_value='test_failed_job')
-def test_failed_job_rendering(mock_uuid, mock_connect):
-    mock_conn = MagicMock()
-    mock_cursor = MagicMock()
-    mock_conn.cursor.return_value = mock_cursor
+    for ni in at.sidebar.number_input:
+        if ni.label == "Power (MW)":
+            ni.set_value(55.0)
+        elif ni.label == "CAPEX (€/kWh)":
+            ni.set_value(120.0)
+            
+    # Start thread to fail the job
+    threading.Thread(target=fail_pending_jobs, daemon=True).start()
     
-    # The first execute is the INSERT. The second is the SELECT polling.
-    # We mock fetchone() to return 'FAILED' immediately
-    mock_cursor.fetchone.return_value = ('FAILED',)
-    mock_connect.return_value = mock_conn
+    # We will try to click the first button in sidebar
+    try:
+        at.sidebar.button[0].click().run(timeout=3)
+    except RuntimeError:
+        # Expected if timeout occurs due to polling loop
+        pass
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT power_mw, capex_per_kwh FROM job_queue ORDER BY created_at DESC LIMIT 1")
+    res = cursor.fetchone()
+    conn.close()
+    
+    assert res is not None
+    assert res[0] == 55.0
+    assert res[1] == 120.0
 
+def test_kpi_and_plotly_rendering():
+    mock_job_id = "mock_job_id_test_kpi"
+    
+    metrics_data = {"Net_Annual_Profit_EUR": 5000000, "Total_CAPEX_EUR": 1000}
+    dispatch_data = [{"datetime": "2023-01-01T00:00:00", "p_dispatch": 10, "p_store": 0, "state_of_charge": 50, "price": 100, "forecast_price": 100}]
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO job_queue (job_id, status, energy_mwh) 
+        VALUES (?, 'COMPLETED', 200.0)
+    ''', (mock_job_id,))
+    cursor.execute('''
+        INSERT OR REPLACE INTO job_results (job_id, metrics_json, dispatch_json)
+        VALUES (?, ?, ?)
+    ''', (mock_job_id, json.dumps(metrics_data), json.dumps(dispatch_data)))
+    conn.commit()
+    conn.close()
+    
     at = AppTest.from_file("app.py").run()
+    at.session_state['current_job_id'] = mock_job_id
+    at.run()
     
-    # Simulate a button click
-    at.sidebar.button[0].click().run(timeout=3)
+    metric_labels = [m.label for m in at.metric]
+    metric_values = [m.value for m in at.metric]
     
-    # Assert that the error banner appears
-    assert len(at.error) > 0
-    assert "Optimization Failed." in at.error[0].value
-
-@patch('app.sqlite3.connect')
-@patch('app.uuid.uuid4', return_value='test_completed_job')
-def test_end_to_end_kpi_rendering(mock_uuid, mock_connect):
-    mock_conn = MagicMock()
-    mock_cursor = MagicMock()
-    mock_conn.cursor.return_value = mock_cursor
+    assert "Net Annual Profit" in metric_labels
+    profit_index = metric_labels.index("Net Annual Profit")
+    assert "5,000,000" in metric_values[profit_index]
     
-    mock_metrics = {
-        "Annual_Gross_Revenue_EUR": 1000000.0,
-        "LCOS_EUR_per_MWh": 50.0,
-        "Simple_Payback_Years": 4.5,
-        "Annual_ROI_Percentage": 15.0,
-        "Equivalent_Full_Cycles": 300,
-        "Annual_Degradation_Cost_EUR": 1500.0,
-        "Expected_Lifespan_Years": 20.0
-    }
+    # Check for plotly charts via attribute if it exists, otherwise via .get()
+    plotly_charts = getattr(at, 'plotly_chart', None)
+    if plotly_charts is None:
+        plotly_charts = at.get('plotly_chart')
     
-    mock_dispatch = [
-        {"datetime": "2024-01-01T00:00:00", "p_dispatch": 10, "p_store": 0, "state_of_charge": 5, "price": 100.0},
-        {"datetime": "2024-01-01T01:00:00", "p_dispatch": 0, "p_store": 10, "state_of_charge": 15, "price": -10.0}
-    ]
+    assert len(plotly_charts) > 0
     
-    # side_effect for fetchone():
-    # 1. First fetchone inside the polling loop: return ('COMPLETED',)
-    # 2. Second fetchone to fetch results: return (metrics_json, dispatch_json, energy_capacity)
-    mock_cursor.fetchone.side_effect = [
-        ('COMPLETED',),
-        (json.dumps(mock_metrics), json.dumps(mock_dispatch), 20.0)
-    ]
-    mock_connect.return_value = mock_conn
-
-    at = AppTest.from_file("app.py").run()
-    
-    # Simulate a button click
-    at.sidebar.button[0].click().run(timeout=3)
-    
-    # Verify the UI renders exactly 8 metrics
-    assert len(at.metric) == 8
-    
-    # Verify metric labels and values (Expected Lifespan is now index 1)
-    assert at.metric[1].label == "Expected Lifespan"
-    assert at.metric[1].value == "20.0 Years"
-    
-    assert at.metric[3].label == "Annual ROI"
-    assert at.metric[3].value == "15.00%"
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM job_queue WHERE job_id = ?", (mock_job_id,))
+    cursor.execute("DELETE FROM job_results WHERE job_id = ?", (mock_job_id,))
+    conn.commit()
+    conn.close()

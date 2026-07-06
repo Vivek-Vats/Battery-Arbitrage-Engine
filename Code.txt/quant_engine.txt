@@ -52,17 +52,12 @@ def optimize_dispatch(prices_df, power_mw, energy_mwh, grid_fee_import, efficien
           p_min_pu=-1, 
           marginal_cost=prices_df_naive['forecast_price'])
 
-    if 'AI_Optimized_Margin_EUR' in prices_df_naive.columns:
-        dynamic_marginal_cost = degradation_penalty + grid_fee_import + prices_df_naive['AI_Optimized_Margin_EUR']
-    else:
-        dynamic_marginal_cost = degradation_penalty + grid_fee_import
-
     # Dynamic StorageUnit Formulation
     n.add("StorageUnit", "lithium_ion_bess",
           bus="AC",
           p_nom=power_mw,
           max_hours=(usable_energy_mwh / power_mw),
-          marginal_cost=dynamic_marginal_cost,
+          marginal_cost=degradation_penalty + grid_fee_import,
           efficiency_store=eff_store,
           efficiency_dispatch=eff_dispatch,
           cyclic_state_of_charge=True)
