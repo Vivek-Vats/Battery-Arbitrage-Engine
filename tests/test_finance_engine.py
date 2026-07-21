@@ -25,6 +25,8 @@ def dispatch_df():
     df = pd.DataFrame({
         'p_dispatch': p_dispatch,
         'p_store': p_store,
+        'DA_Discharge': p_dispatch,
+        'DA_Charge': p_store,
         'price': price
     })
     return df
@@ -53,6 +55,7 @@ def test_wacc_discounting(dispatch_df):
         wacc=wacc,
         lifespan_years=lifespan_years,
         grid_fee_import=grid_fee_import,
+        efficiency_store=93.0,
         efficiency_dispatch=efficiency_dispatch,
         expected_lifespan_cycles=expected_lifespan_cycles
     )
@@ -66,7 +69,7 @@ def test_wacc_discounting(dispatch_df):
     total_discounted_lifetime_costs = TOTAL_CAPEX + discounted_opex
     
     time_step_hours = 0.25
-    annual_delivered_mwh = dispatch_df['p_dispatch'].sum() * time_step_hours
+    annual_delivered_mwh = dispatch_df['DA_Discharge'].sum() * time_step_hours
     
     discounted_delivered_mwh = sum(annual_delivered_mwh / ((1 + wacc_decimal) ** t) for t in range(1, lifespan_years + 1))
     
@@ -88,6 +91,7 @@ def test_dynamic_lifespan(dispatch_df):
         wacc=7.0,
         lifespan_years=15,
         grid_fee_import=15,
+        efficiency_store=93.0,
         efficiency_dispatch=93.0
     )
     
@@ -117,19 +121,22 @@ def test_dc_throughput(dispatch_df):
         wacc=7.0,
         lifespan_years=15,
         grid_fee_import=15,
+        efficiency_store=93.0,
         efficiency_dispatch=efficiency,
         expected_lifespan_cycles=6000
     )
     
     time_step_hours = 0.25
-    annual_delivered_mwh = dispatch_df['p_dispatch'].sum() * time_step_hours
+    annual_delivered_mwh = dispatch_df['DA_Discharge'].sum() * time_step_hours
     
     # EFC without efficiency penalty (AC only)
     efc_ac_only = annual_delivered_mwh / energy_mwh
     
-    # Expected EFC with efficiency penalty (DC throughput)
-    internal_dc_throughput_mwh = annual_delivered_mwh / (efficiency / 100.0)
-    expected_efc = internal_dc_throughput_mwh / energy_mwh
+    # Expected EFC with efficiency penalty (DC throughput including charging and discharging)
+    eff_dispatch_decimal = efficiency / 100.0
+    eff_store_decimal = 93.0 / 100.0
+    internal_dc_throughput_mwh = (annual_delivered_mwh / eff_dispatch_decimal) + (annual_delivered_mwh * eff_store_decimal)
+    expected_efc = (internal_dc_throughput_mwh / 2) / energy_mwh
     
     actual_efc = results['Equivalent_Full_Cycles']
     
@@ -138,4 +145,3 @@ def test_dc_throughput(dispatch_df):
     
     # Assert that DC wear is proportionally higher than AC sum
     assert actual_efc > efc_ac_only
-    assert abs(actual_efc - (efc_ac_only / 0.93)) < 1e-5

@@ -73,12 +73,13 @@ def test_timezone_serialization():
     bess_orchestrator.init_db(conn)
     cursor = conn.cursor()
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS day_ahead_prices (
+        CREATE TABLE IF NOT EXISTS forecasted_market_data (
             datetime TEXT PRIMARY KEY,
-            price_eur_per_mwh REAL
+            price REAL,
+            forecast_price REAL
         )
     ''')
-    cursor.execute("INSERT INTO day_ahead_prices (datetime, price_eur_per_mwh) VALUES ('2023-01-01T00:00:00Z', 50.0)")
+    cursor.execute("INSERT INTO forecasted_market_data (datetime, price, forecast_price) VALUES ('2023-01-01T00:00:00Z', 50.0, 50.0)")
     conn.commit()
 
     cursor.execute('''

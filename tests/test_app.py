@@ -24,7 +24,8 @@ def test_sidebar_form_submission():
             ni.set_value(120.0)
             
     # Start thread to fail the job
-    threading.Thread(target=fail_pending_jobs, daemon=True).start()
+    t = threading.Thread(target=fail_pending_jobs, daemon=True)
+    t.start()
     
     # We will try to click the first button in sidebar
     try:
@@ -32,6 +33,7 @@ def test_sidebar_form_submission():
     except RuntimeError:
         # Expected if timeout occurs due to polling loop
         pass
+    t.join(timeout=5)
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -47,7 +49,7 @@ def test_kpi_and_plotly_rendering():
     mock_job_id = "mock_job_id_test_kpi"
     
     metrics_data = {"Net_Annual_Profit_EUR": 5000000, "Total_CAPEX_EUR": 1000}
-    dispatch_data = [{"datetime": "2023-01-01T00:00:00", "p_dispatch": 10, "p_store": 0, "state_of_charge": 50, "price": 100, "forecast_price": 100}]
+    dispatch_data = [{"datetime": "2023-01-01T00:00:00", "p_dispatch": 10, "p_store": 0, "DA_Discharge": 10, "DA_Charge": 0, "state_of_charge": 50, "price": 100, "forecast_price": 100}]
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()

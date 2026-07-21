@@ -95,7 +95,7 @@ def process_one_job(conn):
             logger.info(f"Job {job_id} optimization completed in {elapsed_time:.3f} seconds.")
             
             # 2. Calculate financials
-            metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_dispatch, expected_lifespan_cycles)
+            metrics = finance_engine.calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan, grid_fee_import, efficiency_store, efficiency_dispatch, expected_lifespan_cycles)
             
             # Serialization & Output
             metrics_json = json.dumps(metrics)

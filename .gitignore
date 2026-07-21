@@ -24,7 +24,6 @@ var/
 venv/
 .venv/
 env/
-.env/
 
 # Databases
 *.sqlite3
@@ -33,3 +32,19 @@ bess_data.db
 
 # Streamlit
 .streamlit/
+
+# Environment Variables
+.env
+
+# Agent & System specific files
+.gemini/
+.agents/
+*.log
+*.lp
+*.txt
+*.tmp
+~$*.docx
+
+# Exclude scratch & testing directories
+scratch/
+scripts/debug_and_test/

@@ -25,7 +25,7 @@ def test_dod_constraint(prices_df):
         degradation_penalty=0.0
     )
     
-    assert df['state_of_charge'].min() >= 40.0
+    assert abs(df['state_of_charge'].min() - 40.0) < 1e-4
 
 def test_efficiency_losses(prices_df):
     """
@@ -42,7 +42,7 @@ def test_efficiency_losses(prices_df):
         degradation_penalty=0.0
     )
     
-    assert df['p_dispatch'].sum() < df['p_store'].sum()
+    assert df['DA_Discharge'].sum() < df['DA_Charge'].sum()
 
 def test_grid_fee_avoidance():
     """
@@ -62,4 +62,4 @@ def test_grid_fee_avoidance():
         degradation_penalty=5.0
     )
     
-    assert df['p_dispatch'].sum() + df['p_store'].sum() == 0.0
+    assert df['DA_Discharge'].sum() + df['DA_Charge'].sum() == 0.0

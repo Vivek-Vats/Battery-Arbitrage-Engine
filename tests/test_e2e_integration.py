@@ -51,7 +51,7 @@ def background_orchestrator_job():
 def test_e2e_architecture(mock_connect):
     setup_test_db()
     try:
-        at = AppTest.from_file("app.py").run()
+        at = AppTest.from_file("app.py").run(timeout=10)
         
         for ni in at.sidebar.number_input:
             if ni.label == "Power (MW)":
@@ -60,10 +60,13 @@ def test_e2e_architecture(mock_connect):
                 ni.set_value(120.0)
                 
         # Start background thread to process job while Streamlit spins in while loop
-        threading.Thread(target=background_orchestrator_job, daemon=True).start()
+        t = threading.Thread(target=background_orchestrator_job, daemon=True)
+        t.start()
         
         # Simulate the form submission (will block in polling loop until bg thread finishes)
         at.sidebar.button[0].click().run(timeout=15)
+        
+        t.join(timeout=10)
         
         conn = original_connect(TEST_DB_PATH)
         cursor = conn.cursor()
