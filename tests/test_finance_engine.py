@@ -65,10 +65,15 @@ def test_wacc_discounting(dispatch_df):
     ANNUAL_OPEX = opex_per_mw * power_mw # 15000 * 100 = 1,500,000
     wacc_decimal = wacc / 100.0 # 0.07
     
-    discounted_opex = sum(ANNUAL_OPEX / ((1 + wacc_decimal) ** t) for t in range(1, lifespan_years + 1))
-    total_discounted_lifetime_costs = TOTAL_CAPEX + discounted_opex
-    
     time_step_hours = 0.25
+    da_price_actual = dispatch_df.get('da_price_actual', pd.Series(0.0, index=dispatch_df.index))
+    da_charge_cost = dispatch_df.get('DA_Charge', pd.Series(0.0, index=dispatch_df.index)) * (da_price_actual + grid_fee_import)
+    total_charging_cost = (da_charge_cost * time_step_hours).sum()
+
+    discounted_opex = sum(ANNUAL_OPEX / ((1 + wacc_decimal) ** t) for t in range(1, lifespan_years + 1))
+    discounted_charging_cost = sum(total_charging_cost / ((1 + wacc_decimal) ** t) for t in range(1, lifespan_years + 1))
+    total_discounted_lifetime_costs = TOTAL_CAPEX + discounted_opex + discounted_charging_cost
+    
     annual_delivered_mwh = dispatch_df['DA_Discharge'].sum() * time_step_hours
     
     discounted_delivered_mwh = sum(annual_delivered_mwh / ((1 + wacc_decimal) ** t) for t in range(1, lifespan_years + 1))

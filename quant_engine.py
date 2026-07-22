@@ -4,17 +4,35 @@ import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def optimize_dispatch(prices_df, power_mw, energy_mwh, current_soc, eff_store, eff_dispatch, dod_pu, degradation_penalty, grid_fee_import=0.08):
+def optimize_dispatch(prices_df, power_mw, energy_mwh, current_soc=None, eff_store=None, eff_dispatch=None, dod_pu=None, degradation_penalty=0.0, grid_fee_import=0.0, **kwargs):
+    # Support keyword aliases and percentage/pu values
+    if eff_store is None:
+        eff_store = kwargs.get('efficiency_store', 0.95)
+    if eff_store > 1.0:
+        eff_store /= 100.0
+        
+    if eff_dispatch is None:
+        eff_dispatch = kwargs.get('efficiency_dispatch', 0.95)
+    if eff_dispatch > 1.0:
+        eff_dispatch /= 100.0
+
+    if dod_pu is None:
+        dod_pu = kwargs.get('depth_of_discharge', 0.8)
+    if dod_pu > 1.0:
+        dod_pu /= 100.0
+
+    if current_soc is None:
+        current_soc = energy_mwh
+
     prices_df_naive = prices_df.copy()
     if prices_df_naive.index.tzinfo is not None:
         prices_df_naive.index = prices_df_naive.index.tz_convert('UTC').tz_localize(None)
 
     prices_df_naive['date'] = prices_df_naive.index.date
-    grouped = prices_df_naive.groupby('date')
     
     all_dispatch_results = []
 
-    for date, daily_df in grouped:
+    for date, daily_df in prices_df_naive.groupby('date'):
         n = pypsa.Network()
         n.set_snapshots(daily_df.index)
 
@@ -70,7 +88,7 @@ def optimize_dispatch(prices_df, power_mw, energy_mwh, current_soc, eff_store, e
         sat_vol = daily_df.get('forecast_saturation_volume_mw', pd.Series(50.0, index=daily_df.index))
 
         tier1_pu = (safe_vol / power_mw).clip(lower=0.0, upper=1.0).fillna(0.0)
-        tier2_pu = ((sat_vol - safe_vol) / power_mw).clip(lower=0.0, upper=1.0).fillna(0.0)
+        tier2_pu = ((sat_vol - safe_vol) / power_mw).clip(lower=0.0, upper=1.0 - tier1_pu).fillna(0.0)
         tier3_pu = (1.0 - tier1_pu - tier2_pu).clip(lower=0.0, upper=1.0).fillna(0.0)
 
         # Imbalance Tiers (Cost increases with volume for Charge)
@@ -125,7 +143,7 @@ def optimize_dispatch(prices_df, power_mw, energy_mwh, current_soc, eff_store, e
               bus1="BESS_DC_Bus", 
               p_nom=power_mw, 
               efficiency=eff_store, 
-              marginal_cost=grid_fee_import + afrr_down_act_reward)
+              marginal_cost=grid_fee_import - afrr_down_act_reward)
 
         def extra_functionality(n, snapshots):
             m = n.model
@@ -152,35 +170,27 @@ def optimize_dispatch(prices_df, power_mw, energy_mwh, current_soc, eff_store, e
             afrr_down_2 = m.variables["Generator-p"].sel(name="aFRR_Down_Reserve_Tier2")
             afrr_down_3 = m.variables["Generator-p"].sel(name="aFRR_Down_Reserve_Tier3")
 
-            # 1. Total Inverter Power Constraints (DA + Imbalance + Reserve + Activation)
-            max_p_out = p_discharge + p_imb_dis_1 + p_imb_dis_2 + p_imb_dis_3 + fcr_res + afrr_up_1 + afrr_up_2 + afrr_up_3 + p_afrr_up_act
+            # 1. Total Inverter Power Constraints (DA + Imbalance + Reserve)
+            max_p_out = p_discharge + p_imb_dis_1 + p_imb_dis_2 + p_imb_dis_3 + fcr_res + afrr_up_1 + afrr_up_2 + afrr_up_3
             m.add_constraints(max_p_out <= power_mw, name="Inverter_Max_Discharge_Power")
 
-            max_p_in = p_charge + p_imb_chg_1 + p_imb_chg_2 + p_imb_chg_3 + fcr_res + afrr_down_1 + afrr_down_2 + afrr_down_3 + p_afrr_down_act
+            max_p_in = p_charge + p_imb_chg_1 + p_imb_chg_2 + p_imb_chg_3 + fcr_res + afrr_down_1 + afrr_down_2 + afrr_down_3
             m.add_constraints(max_p_in <= power_mw, name="Inverter_Max_Charge_Power")
 
             # 2. Energy/SOC Constraints for Reserves
-            # FCR requires +/- 1C for 15 minutes = 0.25h
-            # aFRR Up requires 1C for 15 minutes = 0.25h
-            # aFRR Down requires 1C for 15 minutes = 0.25h
             soc = m.variables["Store-e"].sel(name="Battery")
             e_min = energy_mwh * (1.0 - dod_pu)
             
-            # FCR requires energy in both directions (headroom and footroom)
-            m.add_constraints(soc - (fcr_res * 0.25) - ((afrr_up_1 + afrr_up_2 + afrr_up_3) * 0.25) >= e_min, name="Reserve_Energy_Footroom")
-            m.add_constraints(soc + (fcr_res * 0.25) + ((afrr_down_1 + afrr_down_2 + afrr_down_3) * 0.25) <= energy_mwh, name="Reserve_Energy_Headroom")
+            m.add_constraints(soc - ((fcr_res + afrr_up_1 + afrr_up_2 + afrr_up_3) * 0.25 / eff_dispatch) >= e_min, name="Reserve_Energy_Footroom")
+            m.add_constraints(soc + ((fcr_res + afrr_down_1 + afrr_down_2 + afrr_down_3) * 0.25 * eff_store) <= energy_mwh, name="Reserve_Energy_Headroom")
 
-            # 3. Virtual Sink for Financial Balance of Virtual Ancillary Bus
-            v_sink = m.variables["Generator-p"].sel(name="Virtual_Sink")
-            m.add_constraints(fcr_res + afrr_up_1 + afrr_up_2 + afrr_up_3 + afrr_down_1 + afrr_down_2 + afrr_down_3 + v_sink == 0, name="Virtual_Bus_Balance")
-
-            # 4. Activation Ratio Links
+            # 3. Activation Ratio Links
             activation_ratio = daily_df.get('forecast_activation_ratio', pd.Series(0.05, index=daily_df.index)).values
             import xarray as xr
             ar_xr = xr.DataArray(activation_ratio, coords=[snapshots], dims=["snapshot"])
             
-            m.add_constraints(p_afrr_up_act == (afrr_up_1 + afrr_up_2 + afrr_up_3) * ar_xr, name="aFRR_Up_Activation_Ratio")
-            m.add_constraints(p_afrr_down_act == (afrr_down_1 + afrr_down_2 + afrr_down_3) * ar_xr, name="aFRR_Down_Activation_Ratio")
+            m.add_constraints(p_afrr_up_act == (afrr_up_1 + afrr_up_2 + afrr_up_3) * ar_xr / eff_dispatch, name="aFRR_Up_Activation_Ratio")
+            m.add_constraints(p_afrr_down_act == (afrr_down_1 + afrr_down_2 + afrr_down_3) * ar_xr * eff_store, name="aFRR_Down_Activation_Ratio")
 
         try:
             status, condition = n.optimize(

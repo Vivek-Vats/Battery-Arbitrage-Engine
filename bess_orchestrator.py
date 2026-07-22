@@ -90,7 +90,16 @@ def process_one_job(conn):
             # Domain Execution
             # 1. Optimize dispatch
             start_time = time.perf_counter()
-            dispatch_df = quant_engine.optimize_dispatch(df, power_mw, energy_mwh, grid_fee_import, efficiency_store, efficiency_dispatch, depth_of_discharge, degradation_penalty)
+            dispatch_df = quant_engine.optimize_dispatch(
+                df, 
+                power_mw=power_mw, 
+                energy_mwh=energy_mwh, 
+                grid_fee_import=grid_fee_import, 
+                efficiency_store=efficiency_store, 
+                efficiency_dispatch=efficiency_dispatch, 
+                depth_of_discharge=depth_of_discharge, 
+                degradation_penalty=degradation_penalty
+            )
             elapsed_time = time.perf_counter() - start_time
             logger.info(f"Job {job_id} optimization completed in {elapsed_time:.3f} seconds.")
             

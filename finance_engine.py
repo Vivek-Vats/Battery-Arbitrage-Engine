@@ -1,6 +1,6 @@
 import pandas as pd
 
-def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan_years, grid_fee_import, efficiency_store, efficiency_dispatch, expected_lifespan_cycles=6000.0):
+def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_per_mw, wacc, lifespan_years, grid_fee_import=0.0, efficiency_store=95.0, efficiency_dispatch=95.0, expected_lifespan_cycles=6000.0):
     """
     Calculates key financial metrics including stacked cash flows from Day-Ahead energy arbitrage 
     and ancillary service capacity revenues.
@@ -52,15 +52,15 @@ def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_
     energy_revenue = total_da_revenue + Total_Imbalance_Discharge_Revenue_EUR - total_charging_cost
     
     # Calculate aFRR Up Capacity Revenue (Slippage Tiers)
-    tier1_up_rev = dispatch_df.get('aFRR_Up_Reserve_Tier1', zero_series) * dispatch_df.get('afrr_up_price_mw', zero_series) * 1.0
-    tier2_up_rev = dispatch_df.get('aFRR_Up_Reserve_Tier2', zero_series) * dispatch_df.get('afrr_up_price_mw', zero_series) * 0.6
-    tier3_up_rev = dispatch_df.get('aFRR_Up_Reserve_Tier3', zero_series) * dispatch_df.get('afrr_up_price_mw', zero_series) * 0.1
+    tier1_up_rev = dispatch_df.get('aFRR_Up_Reserve_Tier1', zero_series) * dispatch_df.get('afrr_up_price_mw', zero_series)
+    tier2_up_rev = dispatch_df.get('aFRR_Up_Reserve_Tier2', zero_series) * dispatch_df.get('afrr_up_price_mw', zero_series)
+    tier3_up_rev = dispatch_df.get('aFRR_Up_Reserve_Tier3', zero_series) * dispatch_df.get('afrr_up_price_mw', zero_series)
     afrr_capacity_revenue = (tier1_up_rev + tier2_up_rev + tier3_up_rev) * time_step_hours
     
     # Calculate aFRR Down Capacity Revenue (Slippage Tiers)
-    tier1_dn_rev = dispatch_df.get('aFRR_Down_Reserve_Tier1', zero_series) * dispatch_df.get('afrr_down_price_mw', zero_series) * 1.0
-    tier2_dn_rev = dispatch_df.get('aFRR_Down_Reserve_Tier2', zero_series) * dispatch_df.get('afrr_down_price_mw', zero_series) * 0.6
-    tier3_dn_rev = dispatch_df.get('aFRR_Down_Reserve_Tier3', zero_series) * dispatch_df.get('afrr_down_price_mw', zero_series) * 0.1
+    tier1_dn_rev = dispatch_df.get('aFRR_Down_Reserve_Tier1', zero_series) * dispatch_df.get('afrr_down_price_mw', zero_series)
+    tier2_dn_rev = dispatch_df.get('aFRR_Down_Reserve_Tier2', zero_series) * dispatch_df.get('afrr_down_price_mw', zero_series)
+    tier3_dn_rev = dispatch_df.get('aFRR_Down_Reserve_Tier3', zero_series) * dispatch_df.get('afrr_down_price_mw', zero_series)
     afrr_down_capacity_revenue = (tier1_dn_rev + tier2_dn_rev + tier3_dn_rev) * time_step_hours
 
     # Calculate Global Market Slippage
@@ -79,8 +79,8 @@ def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_
     afrr_activation_revenue_series = (dispatch_df.get('aFRR_Up_Activation', zero_series) * dispatch_df.get('afrr_up_activation_price_mwh', zero_series)) * time_step_hours
     afrr_activation_revenue = afrr_activation_revenue_series
     
-    afrr_down_activation_revenue_series = (-dispatch_df.get('aFRR_Down_Activation', zero_series) * (dispatch_df.get('afrr_down_activation_price_mwh', zero_series) + grid_fee_import)) * time_step_hours
-    afrr_down_activation_revenue = afrr_down_activation_revenue_series
+    afrr_down_activation_revenue_series = (dispatch_df.get('aFRR_Down_Activation', zero_series) * dispatch_df.get('afrr_down_activation_price_mwh', zero_series)) * time_step_hours
+    afrr_down_activation_revenue = afrr_down_activation_revenue_series.sum()
     
     fcr_capacity_revenue = (dispatch_df.get('FCR_Reserve', zero_series) * dispatch_df.get('fcr_price_eur_mw', zero_series)) * time_step_hours
     
@@ -123,10 +123,8 @@ def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_
         total_in_vol = da_in + imb_in + afrr_down_in
         if total_in_vol > 0:
             total_in_cost = da_in_cost + imb_in_cost + afrr_in_cost
-            # Update moving average
-            new_tank_soc = tank_soc + total_in_vol
-            tank_cost_per_mwh = ((tank_soc * tank_cost_per_mwh) + total_in_cost) / new_tank_soc
-            tank_soc = new_tank_soc
+            tank_cost_per_mwh = ((tank_soc * tank_cost_per_mwh) + total_in_cost) / (tank_soc + total_in_vol)
+            tank_soc = min(energy_mwh, tank_soc + total_in_vol)
             
         # 2. Outgoing Discharge (MWh)
         da_out = da_discharge_array[i] * time_step_hours
@@ -156,48 +154,52 @@ def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_
     net_afrr_act_revenue = afrr_activation_revenue.sum() - afrr_cogs
     
     energy_revenue = Net_DA_Revenue_EUR + Net_Imbalance_Revenue_EUR
-    total_gross_revenue = energy_revenue + afrr_capacity_revenue.sum() + net_afrr_act_revenue + afrr_down_capacity_revenue.sum() + fcr_capacity_revenue.sum()
+    total_gross_revenue = energy_revenue + afrr_capacity_revenue.sum() + net_afrr_act_revenue + afrr_down_capacity_revenue.sum() + afrr_down_activation_revenue + fcr_capacity_revenue.sum()
     
-    # Calculate Annual Delivered MWh
-    da_vol = dispatch_df.get('DA_Discharge', zero_series).sum() * time_step_hours
-    imb_vol = imb_discharge.sum() * time_step_hours
-    afrr_act_vol = dispatch_df.get('aFRR_Up_Activation', zero_series).sum() * time_step_hours
-    total_vol = da_vol + imb_vol + afrr_act_vol
-    annual_delivered_mwh = total_vol
-    average_spread = total_gross_revenue / annual_delivered_mwh if annual_delivered_mwh > 0 else 0
-    
-    # Convert WACC from percentage to decimal
-    wacc_decimal = wacc / 100.0
-    
-    # Discounted values over lifespan
-    discounted_opex = sum(ANNUAL_OPEX / ((1 + wacc_decimal) ** t) for t in range(1, int(lifespan_years) + 1))
-    total_discounted_lifetime_costs = TOTAL_CAPEX + discounted_opex
-    
-    discounted_delivered_mwh = sum(annual_delivered_mwh / ((1 + wacc_decimal) ** t) for t in range(1, int(lifespan_years) + 1))
-    
-    # LCOS Calculation
-    # Avoid division by zero if there's no delivered energy
-    if discounted_delivered_mwh > 0:
-        lcos = total_discounted_lifetime_costs / discounted_delivered_mwh
-    else:
-        lcos = float('inf')
-        
-    # Net Cash Flow Calculation
+    # Net Cash Flow Calculation & Annualization Factor
     if len(dispatch_df) > 0 and isinstance(dispatch_df.index, pd.DatetimeIndex):
         sim_days = (dispatch_df.index[-1] - dispatch_df.index[0]).total_seconds() / 86400.0
     else:
         sim_days = len(dispatch_df) / 96.0 if len(dispatch_df) > 0 else 0.0
     annualization_factor = 365.0 / sim_days if sim_days > 0 else 1.0
 
+    # Calculate Annual Delivered MWh
+    da_vol = dispatch_df.get('DA_Discharge', zero_series).sum() * time_step_hours
+    imb_vol = imb_discharge.sum() * time_step_hours
+    afrr_act_vol = dispatch_df.get('aFRR_Up_Activation', zero_series).sum() * time_step_hours
+    total_vol = da_vol + imb_vol + afrr_act_vol
+    annual_delivered_mwh = total_vol * annualization_factor
+    average_spread = total_gross_revenue / total_vol if total_vol > 0 else 0
+    
+    # Convert WACC from percentage to decimal
+    wacc_decimal = wacc / 100.0
+    
+    # Discounted values over lifespan
+    discounted_opex = sum(ANNUAL_OPEX / ((1 + wacc_decimal) ** t) for t in range(1, int(lifespan_years) + 1))
+    discounted_charging_cost = sum((total_charging_cost * annualization_factor) / ((1 + wacc_decimal) ** t) for t in range(1, int(lifespan_years) + 1))
+    total_discounted_lifetime_costs = TOTAL_CAPEX + discounted_opex + discounted_charging_cost
+    
+    discounted_delivered_mwh = sum(annual_delivered_mwh / ((1 + wacc_decimal) ** t) for t in range(1, int(lifespan_years) + 1))
+    
+    # LCOS Calculation
+    lcos = total_discounted_lifetime_costs / discounted_delivered_mwh if discounted_delivered_mwh > 0 else float('inf')
+
     # Rainflow counting proxy / Battery wear-and-tear
     eff_store_decimal = efficiency_store / 100.0
     eff_dispatch_decimal = efficiency_dispatch / 100.0
     
-    # True Physical Battery Degradation (calculated from actual SoC changes to avoid counting virtual passive arbitrage transits)
-    soc_series = dispatch_df.get('state_of_charge', zero_series)
-    internal_dc_throughput_mwh = soc_series.diff().abs().sum()
-    
-    efc = (internal_dc_throughput_mwh / 2) / energy_mwh if energy_mwh > 0 else 0
+    # True Physical Battery Degradation
+    if 'state_of_charge' in dispatch_df:
+        soc_series = dispatch_df['state_of_charge']
+        internal_dc_throughput_mwh = soc_series.diff().fillna(0.0).abs().sum()
+    else:
+        eff_store_dec = efficiency_store / 100.0
+        eff_disp_dec = efficiency_dispatch / 100.0
+        chg_vol = (dispatch_df.get('DA_Charge', zero_series) + dispatch_df.get('Imbalance_Charge', zero_series) + dispatch_df.get('aFRR_Down_Activation', zero_series)).sum() * time_step_hours
+        dis_vol = (dispatch_df.get('DA_Discharge', zero_series) + dispatch_df.get('Imbalance_Discharge', zero_series) + dispatch_df.get('aFRR_Up_Activation', zero_series)).sum() * time_step_hours
+        internal_dc_throughput_mwh = (chg_vol * eff_store_dec) + (dis_vol / eff_disp_dec if eff_disp_dec > 0 else dis_vol)
+
+    efc = (internal_dc_throughput_mwh / 2.0) / energy_mwh if energy_mwh > 0 else 0.0
     annual_degradation_cost = (efc / expected_lifespan_cycles) * TOTAL_CAPEX
     
     # Scale to annual equivalent
@@ -243,7 +245,7 @@ def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_
         'DA_COGS_EUR': float(da_cogs),
         'aFRR_COGS_EUR': float(afrr_cogs),
         'Ancillary_Down_Capacity_Revenue_EUR': float(afrr_down_capacity_revenue.sum()),
-        'Ancillary_Down_Activation_Revenue_EUR': float(afrr_down_activation_revenue.sum()),
+        'Ancillary_Down_Activation_Revenue_EUR': float(afrr_down_activation_revenue),
         'Net_Imbalance_Revenue_EUR': float(Net_Imbalance_Revenue_EUR),
         'Total_Imbalance_Charging_Cost_EUR': float(Total_Imbalance_Charging_Cost_EUR),
         'Total_Imbalance_Discharge_Revenue_EUR': float(Total_Imbalance_Discharge_Revenue_EUR),
