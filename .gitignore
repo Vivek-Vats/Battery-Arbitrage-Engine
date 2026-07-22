@@ -48,3 +48,4 @@ test_out.txt
 # Exclude scratch & testing directories
 scratch/
 scripts/debug_and_test/
+*.docx
