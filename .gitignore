@@ -41,7 +41,7 @@ bess_data.db
 .agents/
 *.log
 *.lp
-*.txt
+test_out.txt
 *.tmp
 ~$*.docx
 
