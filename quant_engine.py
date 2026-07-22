@@ -32,14 +32,14 @@ def optimize_dispatch(prices_df, power_mw, energy_mwh, current_soc, eff_store, e
               bus="AC", 
               p_nom=100000, 
               p_min_pu=-1, 
-              marginal_cost=charge_cost)
+              marginal_cost=0.0)
               
         imb_cost = daily_df.get('forecast_price', pd.Series(0.0, index=daily_df.index))
         n.add("Generator", "Imbalance_AC_Gen", 
               bus="Imbalance_AC", 
               p_nom=100000, 
               p_min_pu=-1, 
-              marginal_cost=imb_cost)
+              marginal_cost=0.0)
 
         n.add("Store", "Battery", 
               bus="BESS_DC_Bus", 
@@ -63,7 +63,7 @@ def optimize_dispatch(prices_df, power_mw, energy_mwh, current_soc, eff_store, e
               bus1="AC", 
               p_nom=power_mw, 
               efficiency=eff_dispatch, 
-              marginal_cost=degradation_penalty - forecast_da_price_series)
+              marginal_cost=discharge_cost - forecast_da_price_series)
 
         # Market Depth Elasticity Tiers (from TenneT MOL)
         safe_vol = daily_df.get('forecast_safe_volume_mw', pd.Series(20.0, index=daily_df.index))
@@ -79,9 +79,9 @@ def optimize_dispatch(prices_df, power_mw, energy_mwh, current_soc, eff_store, e
         n.add("Link", "Imbalance_Charge_Tier3", bus0="Imbalance_AC", bus1="BESS_DC_Bus", p_nom=power_mw, p_max_pu=tier3_pu, efficiency=eff_store, marginal_cost=grid_fee_import + forecast_imb_price_series * 1.50)
 
         # Imbalance Tiers (Revenue decreases with volume for Discharge)
-        n.add("Link", "Imbalance_Discharge_Tier1", bus0="BESS_DC_Bus", bus1="Imbalance_AC", p_nom=power_mw, p_max_pu=tier1_pu, efficiency=eff_dispatch, marginal_cost=degradation_penalty - forecast_imb_price_series * 1.0)
-        n.add("Link", "Imbalance_Discharge_Tier2", bus0="BESS_DC_Bus", bus1="Imbalance_AC", p_nom=power_mw, p_max_pu=tier2_pu, efficiency=eff_dispatch, marginal_cost=degradation_penalty - forecast_imb_price_series * 0.95)
-        n.add("Link", "Imbalance_Discharge_Tier3", bus0="BESS_DC_Bus", bus1="Imbalance_AC", p_nom=power_mw, p_max_pu=tier3_pu, efficiency=eff_dispatch, marginal_cost=degradation_penalty - forecast_imb_price_series * 0.50)
+        n.add("Link", "Imbalance_Discharge_Tier1", bus0="BESS_DC_Bus", bus1="Imbalance_AC", p_nom=power_mw, p_max_pu=tier1_pu, efficiency=eff_dispatch, marginal_cost=discharge_cost - forecast_imb_price_series * 1.0)
+        n.add("Link", "Imbalance_Discharge_Tier2", bus0="BESS_DC_Bus", bus1="Imbalance_AC", p_nom=power_mw, p_max_pu=tier2_pu, efficiency=eff_dispatch, marginal_cost=discharge_cost - forecast_imb_price_series * 0.95)
+        n.add("Link", "Imbalance_Discharge_Tier3", bus0="BESS_DC_Bus", bus1="Imbalance_AC", p_nom=power_mw, p_max_pu=tier3_pu, efficiency=eff_dispatch, marginal_cost=discharge_cost - forecast_imb_price_series * 0.50)
 
         # Ancillary Services
         n.add("Bus", "Virtual_Ancillary_Bus")
@@ -118,7 +118,7 @@ def optimize_dispatch(prices_df, power_mw, energy_mwh, current_soc, eff_store, e
               bus1="AC", 
               p_nom=power_mw, 
               efficiency=eff_dispatch, 
-              marginal_cost=degradation_penalty - (afrr_up_act_reward - forecast_imb_price_series))
+              marginal_cost=discharge_cost - afrr_up_act_reward)
 
         n.add("Link", "aFRR_Down_Activation", 
               bus0="AC", 

@@ -115,11 +115,10 @@ def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_
         imb_in_cost = imb_charge_cost_array[i] * time_step_hours
         
         afrr_down_in = afrr_down_act_array[i] * time_step_hours
-        # The cost of charging via aFRR down is negative of the revenue, 
-        # effectively it is paid to charge, but let's treat the ledger simply:
-        # It's an inflow of energy. The revenue is recognized directly above in afrr_down_activation_revenue.
-        # We will assign a 0 cost to aFRR down energy to avoid double-counting revenue.
-        afrr_in_cost = 0.0 
+        # The true physical cost to charge via aFRR down is the activation price plus the grid fee.
+        # This accurately loads the COGS into the tank for when the energy is eventually discharged.
+        afrr_act_price = dispatch_df.get('afrr_down_activation_price_mwh', zero_series).values[i]
+        afrr_in_cost = afrr_down_in * (afrr_act_price + grid_fee_import) 
         
         total_in_vol = da_in + imb_in + afrr_down_in
         if total_in_vol > 0:
@@ -157,7 +156,7 @@ def calculate_financials(dispatch_df, power_mw, energy_mwh, capex_per_kwh, opex_
     net_afrr_act_revenue = afrr_activation_revenue.sum() - afrr_cogs
     
     energy_revenue = Net_DA_Revenue_EUR + Net_Imbalance_Revenue_EUR
-    total_gross_revenue = energy_revenue + afrr_capacity_revenue.sum() + net_afrr_act_revenue + afrr_down_capacity_revenue.sum() + afrr_down_activation_revenue.sum() + fcr_capacity_revenue.sum()
+    total_gross_revenue = energy_revenue + afrr_capacity_revenue.sum() + net_afrr_act_revenue + afrr_down_capacity_revenue.sum() + fcr_capacity_revenue.sum()
     
     # Calculate Annual Delivered MWh
     da_vol = dispatch_df.get('DA_Discharge', zero_series).sum() * time_step_hours
