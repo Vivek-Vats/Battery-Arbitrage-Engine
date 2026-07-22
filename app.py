@@ -115,15 +115,12 @@ if submit_button:
         st.session_state.current_job_id = job_id
 
 if st.session_state.current_job_id is not None:
-    if "active_tab" not in st.session_state:
-        st.session_state.active_tab = "Single Scenario Deep-Dive"
-    active_tab = st.sidebar.radio("Navigation", ["Single Scenario Deep-Dive", "Scenario Comparison Matrix"])
-    st.session_state.active_tab = active_tab
+
 
     tab1, tab2 = st.tabs(["Single Scenario Deep-Dive", "Scenario Comparison Matrix"])
     
     with tab1:
-        if st.session_state.active_tab == "Single Scenario Deep-Dive":
+        if True:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             cursor.execute("""
@@ -445,11 +442,10 @@ if st.session_state.current_job_id is not None:
                             st.error("Please enter a scenario name.")
             else:
                 st.error("No results found for this job.")
-        else:
-            st.info("Single Scenario Deep-Dive tab is inactive. Select it in the sidebar navigation to run.")
+
 
     with tab2:
-        if st.session_state.active_tab == "Scenario Comparison Matrix":
+        if True:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             cursor.execute("SELECT job_id, scenario_name FROM job_queue WHERE status='COMPLETED' AND scenario_name IS NOT NULL AND scenario_name != '' ORDER BY created_at DESC")
@@ -524,5 +520,4 @@ if st.session_state.current_job_id is not None:
                     conn.close()
                     st.rerun()
             conn.close()
-        else:
-            st.info("Scenario Comparison Matrix tab is inactive. Select it in the sidebar navigation to run.")
+
