@@ -3,6 +3,8 @@ import numpy as np
 import requests
 import time
 import sqlite3
+import argparse
+from datetime import datetime, timezone
 from tenacity import retry, wait_exponential_jitter, stop_after_attempt, retry_if_exception_type
 
 TENNET_API_KEY = "085bf0ad-a062-4f84-ad4b-d265ee5a6e98"
@@ -114,58 +116,89 @@ def fetch_tennet_afrr_activations(start, end):
     return final_df
 
 def main():
+    parser = argparse.ArgumentParser(description="Fetch and ingest TenneT data incrementally.")
+    parser.add_argument('--start', type=str, help="Start date (YYYY-MM-DD). If omitted, fetches from latest DB timestamp.")
+    parser.add_argument('--end', type=str, help="End date (YYYY-MM-DD). If omitted, fetches up to today.")
+    args = parser.parse_args()
+
     print("Connecting to bess_data.db...")
     con = sqlite3.connect('bess_data.db')
     
-    # Load the existing historical_market_data table
-    print("Loading historical_market_data from database...")
-    hist_df = pd.read_sql("SELECT * FROM historical_market_data", con)
-    hist_df['datetime'] = pd.to_datetime(hist_df['datetime'])
-    hist_df.set_index('datetime', inplace=True)
-    
-    # Define period
-    start = pd.Timestamp('2025-10-01', tz='Europe/Amsterdam')
-    end = pd.Timestamp('2026-07-01', tz='Europe/Amsterdam')
-    
-    print(f"Fetching TenneT data from {start} to {end}...")
+    if args.start:
+        start = pd.Timestamp(args.start, tz='Europe/Amsterdam')
+    else:
+        try:
+            cursor = con.cursor()
+            # Find the latest date we actually have TenneT aFRR data for (avoiding NaNs/0s)
+            cursor.execute("SELECT MAX(datetime) FROM historical_market_data WHERE afrr_up_activation_price_mwh IS NOT NULL AND afrr_up_activation_price_mwh != 0.0")
+            max_dt = cursor.fetchone()[0]
+            if max_dt:
+                start = pd.Timestamp(max_dt).tz_localize('UTC').tz_convert('Europe/Amsterdam') - pd.Timedelta(days=1)
+            else:
+                start = pd.Timestamp('2023-01-01', tz='Europe/Amsterdam')
+        except sqlite3.OperationalError:
+            start = pd.Timestamp('2023-01-01', tz='Europe/Amsterdam')
+
+    if args.end:
+        end = pd.Timestamp(args.end, tz='Europe/Amsterdam')
+    else:
+        end = pd.Timestamp(datetime.now(timezone.utc)).tz_convert('Europe/Amsterdam').floor('D')
+        
+    if start >= end:
+        print("Data is already up-to-date.")
+        con.close()
+        return
+        
+    print(f"Fetching TenneT data from {start.strftime('%Y-%m-%d')} to {end.strftime('%Y-%m-%d')}...")
     tennet_df = fetch_tennet_afrr_activations(start, end)
     
     if tennet_df.empty:
         print("No TenneT data to update. Exiting.")
+        con.close()
         return
         
     print(f"Retrieved {len(tennet_df)} records from TenneT.")
     
-    # Update the historical dataframe
-    # Find overlapping indexes
-    overlap_idx = hist_df.index.intersection(tennet_df.index)
+    print("Writing delta to staging table...")
+    tennet_df.to_sql('temp_tennet_data', con, if_exists='replace', index=True, index_label='datetime')
     
-    if len(overlap_idx) > 0:
-        print(f"Updating {len(overlap_idx)} records in historical_market_data...")
-        if 'afrr_up_activation_price_mwh' not in hist_df.columns:
-            hist_df['afrr_up_activation_price_mwh'] = np.nan
-        if 'afrr_down_activation_price_mwh' not in hist_df.columns:
-            hist_df['afrr_down_activation_price_mwh'] = np.nan
+    print("Executing atomic UPSERT into historical_market_data...")
+    con.execute('''
+        CREATE TABLE IF NOT EXISTS historical_market_data (
+            datetime TEXT PRIMARY KEY
+        )
+    ''')
+    con.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_datetime_unique ON historical_market_data (datetime)')
+    
+    cursor = con.cursor()
+    cursor.execute("PRAGMA table_info(temp_tennet_data)")
+    temp_cols = [info[1] for info in cursor.fetchall()]
+    cursor.execute("PRAGMA table_info(historical_market_data)")
+    hist_cols = [info[1] for info in cursor.fetchall()]
+    
+    for col in temp_cols:
+        if col not in hist_cols and col != 'datetime':
+            print(f"Adding new column '{col}' to historical_market_data schema.")
+            con.execute(f'ALTER TABLE historical_market_data ADD COLUMN "{col}" REAL')
             
-        hist_df.loc[overlap_idx, 'afrr_up_activation_price_mwh'] = tennet_df.loc[overlap_idx, 'afrr_up_activation_price_mwh'].combine_first(hist_df.loc[overlap_idx, 'afrr_up_activation_price_mwh'])
-        hist_df.loc[overlap_idx, 'afrr_down_activation_price_mwh'] = tennet_df.loc[overlap_idx, 'afrr_down_activation_price_mwh'].combine_first(hist_df.loc[overlap_idx, 'afrr_down_activation_price_mwh'])
-        
-        # We don't overwrite with 0.0 here for everything, let's just keep the NaNs or whatever they were.
-        # But earlier we said fill missing with 0.0. Let's do that for the whole column again just in case.
-        hist_df['afrr_up_activation_price_mwh'] = hist_df['afrr_up_activation_price_mwh'].fillna(0.0)
-        hist_df['afrr_down_activation_price_mwh'] = hist_df['afrr_down_activation_price_mwh'].fillna(0.0)
-
-        # Write back to SQLite preserving table schema and indexes
-        print("Saving updated historical_market_data back to SQLite...")
-        cursor = con.cursor()
-        cursor.execute("DELETE FROM historical_market_data")
-        con.commit()
-        hist_df.to_sql("historical_market_data", con, if_exists="append", index=True, index_label="datetime")
-        print("Done!")
+    cols_str = ", ".join([f'"{c}"' for c in temp_cols])
+    
+    if len(temp_cols) > 1:
+        update_str = ", ".join([f'"{c}" = excluded."{c}"' for c in temp_cols if c != 'datetime'])
+        upsert_sql = f'''
+            INSERT INTO historical_market_data ({cols_str}) 
+            SELECT {cols_str} FROM temp_tennet_data
+            WHERE true
+            ON CONFLICT(datetime) DO UPDATE SET {update_str}
+        '''
     else:
-        print("No overlapping dates found in the database. Nothing updated.")
+        upsert_sql = f'INSERT OR IGNORE INTO historical_market_data ({cols_str}) SELECT {cols_str} FROM temp_tennet_data'
         
+    con.execute(upsert_sql)
+    con.execute('DROP TABLE temp_tennet_data')
+    con.commit()
     con.close()
+    print("Done!")
 
 if __name__ == "__main__":
     main()

@@ -5,6 +5,8 @@ import time
 import pandas as pd
 import numpy as np
 import yfinance as yf
+import argparse
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 load_dotenv()
 from entsoe import EntsoePandasClient
@@ -211,16 +213,60 @@ def fetch_tennet_mol_elasticity(start, end):
     return out_df
 
 def main():
+    parser = argparse.ArgumentParser(description="Fetch and ingest ENTSO-E/TenneT data incrementally.")
+    parser.add_argument('--start', type=str, help="Start date (YYYY-MM-DD). If omitted, fetches from latest DB timestamp.")
+    parser.add_argument('--end', type=str, help="End date (YYYY-MM-DD). If omitted, fetches up to today.")
+    args = parser.parse_args()
+
+    db_path = "bess_data.db"
+    conn = sqlite3.connect(db_path)
+
+    if args.start:
+        start_date = pd.Timestamp(args.start)
+    else:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT MAX(datetime) FROM historical_market_data")
+            max_dt = cursor.fetchone()[0]
+            if max_dt:
+                # Start 1 day before the max_dt to ensure overlap and gap filling
+                start_date = pd.Timestamp(max_dt) - pd.Timedelta(days=1)
+            else:
+                start_date = pd.Timestamp('2023-01-01')
+        except sqlite3.OperationalError:
+            start_date = pd.Timestamp('2023-01-01')
+            
+    if args.end:
+        end_date = pd.Timestamp(args.end)
+    else:
+        end_date = pd.Timestamp(datetime.now(timezone.utc)).floor('D')
+        
+    start_date = start_date.tz_localize(None)
+    end_date = end_date.tz_localize(None)
+    
+    if start_date >= end_date:
+        print("Data is already up-to-date.")
+        conn.close()
+        return
+
+    print(f"Ingesting data from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}...")
+
     country_code = 'NL'
     
-    # Generate strict 1-month chunks from 2023-01-01 to 2026-07-01 to prevent ENTSO-E payload crashes
-    start_date = pd.Timestamp('2023-01-01')
-    end_date = pd.Timestamp('2026-07-01')
+    # Generate strict 1-month chunks to prevent ENTSO-E payload crashes
     date_range = pd.date_range(start=start_date, end=end_date, freq='MS')
-    
+    # If the range is smaller than a month, or end date doesn't land exactly on MS, append end_date
+    if len(date_range) == 0 or date_range[-1] < end_date:
+        date_range = date_range.append(pd.DatetimeIndex([end_date]))
+    if date_range[0] > start_date:
+        date_range = date_range.insert(0, start_date)
+        
     dates = []
     for i in range(len(date_range) - 1):
         dates.append((date_range[i].strftime('%Y-%m-%d'), date_range[i+1].strftime('%Y-%m-%d')))
+        
+    if not dates:
+        dates = [(start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))]
         
     da_dfs = []
     imb_dfs = []
@@ -403,14 +449,16 @@ def main():
     else:
         fcr_df = pd.DataFrame(columns=['fcr_price_eur_mw'])
 
-    print("Fetching TTF Gas Prices via yfinance...")
-    ttf_df = yf.download("TTF=F", start='2023-01-01', end='2026-07-01')
+    print(f"Fetching TTF Gas Prices via yfinance from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}...")
+    ttf_df = yf.download("TTF=F", start=start_date.strftime('%Y-%m-%d'), end=(end_date + pd.Timedelta(days=1)).strftime('%Y-%m-%d'))
     gas_series = ttf_df['Close'].shift(1)
+    if isinstance(gas_series, pd.DataFrame):
+        gas_series = gas_series.iloc[:, 0]
     gas_series.index = pd.to_datetime(gas_series.index).tz_localize('UTC')
     
     # Create continuous 15-min spine
-    start_utc = pd.Timestamp('2023-01-01', tz='Europe/Amsterdam').tz_convert('UTC')
-    end_utc = pd.Timestamp('2026-07-01', tz='Europe/Amsterdam').tz_convert('UTC') - pd.Timedelta(minutes=15)
+    start_utc = start_date.tz_localize('Europe/Amsterdam').tz_convert('UTC')
+    end_utc = end_date.tz_localize('Europe/Amsterdam').tz_convert('UTC') - pd.Timedelta(minutes=15)
     
     # Spine generation with 15min freq
     spine = pd.date_range(start=start_utc, end=end_utc, freq='15min')
@@ -499,12 +547,48 @@ def main():
     # Strip timezone for sqlite
     df.index = df.index.tz_localize(None)
     
-    db_path = "bess_data.db"
-    conn = sqlite3.connect(db_path)
-    df.to_sql('historical_market_data', conn, if_exists='replace', index=True, index_label='datetime')
+    print("Writing delta to staging table...")
+    df.to_sql('temp_market_data', conn, if_exists='replace', index=True, index_label='datetime')
+    
+    print("Executing atomic UPSERT into historical_market_data...")
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS historical_market_data (
+            datetime TEXT PRIMARY KEY
+        )
+    ''')
+    conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_datetime_unique ON historical_market_data (datetime)')
+    
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(temp_market_data)")
+    temp_cols = [info[1] for info in cursor.fetchall()]
+    cursor.execute("PRAGMA table_info(historical_market_data)")
+    hist_cols = [info[1] for info in cursor.fetchall()]
+    
+    # Dynamic schema evolution
+    for col in temp_cols:
+        if col not in hist_cols and col != 'datetime':
+            print(f"Adding new column '{col}' to historical_market_data schema.")
+            conn.execute(f'ALTER TABLE historical_market_data ADD COLUMN "{col}" REAL')
+            
+    cols_str = ", ".join([f'"{c}"' for c in temp_cols])
+    
+    if len(temp_cols) > 1:
+        update_str = ", ".join([f'"{c}" = excluded."{c}"' for c in temp_cols if c != 'datetime'])
+        upsert_sql = f'''
+            INSERT INTO historical_market_data ({cols_str}) 
+            SELECT {cols_str} FROM temp_market_data
+            WHERE true
+            ON CONFLICT(datetime) DO UPDATE SET {update_str}
+        '''
+    else:
+        upsert_sql = f'INSERT OR IGNORE INTO historical_market_data ({cols_str}) SELECT {cols_str} FROM temp_market_data'
+        
+    conn.execute(upsert_sql)
+    conn.execute('DROP TABLE temp_market_data')
+    conn.commit()
     conn.close()
     
-    print(f"Data successfully saved to {db_path} in 'historical_market_data'.")
+    print(f"Incremental update successfully UPSERTed into 'historical_market_data'.")
 
 if __name__ == "__main__":
     main()
