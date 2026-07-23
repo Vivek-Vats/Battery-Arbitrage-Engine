@@ -3,11 +3,7 @@ import numpy as np
 import sqlite3
 import xgboost as xgb
 
-def asymmetric_mse_objective(y_true, y_pred):
-    residual = y_pred - y_true
-    grad = np.where(y_true > y_pred, 1.5 * residual, 1.0 * residual)
-    hess = np.where(y_true > y_pred, 1.5, 1.0)
-    return grad, hess
+
 
 def load_data(db_path="bess_data.db"):
     conn = sqlite3.connect(db_path)
@@ -36,11 +32,11 @@ def feature_engineering(df):
     df['hour_sin'] = np.sin(2 * np.pi * hour / 24)
     df['hour_cos'] = np.cos(2 * np.pi * hour / 24)
     
-    # Lagged features (T-24h and T-48h prices). 15-minute resolution -> 96 and 192 periods
-    df['da_price_lag_24h'] = df['da_price_actual'].shift(96)
-    df['da_price_lag_48h'] = df['da_price_actual'].shift(192)
-    df['imb_price_lag_24h'] = df['imbalance_price_15m'].shift(96)
-    df['imb_price_lag_48h'] = df['imbalance_price_15m'].shift(192)
+    # Lagged features (T-24h and T-48h prices). Timedelta-based shift to survive DST transitions.
+    df['da_price_lag_24h'] = df['da_price_actual'].shift(freq=pd.Timedelta('24h'))
+    df['da_price_lag_48h'] = df['da_price_actual'].shift(freq=pd.Timedelta('48h'))
+    df['imb_price_lag_24h'] = df['imbalance_price_15m'].shift(freq=pd.Timedelta('24h'))
+    df['imb_price_lag_48h'] = df['imbalance_price_15m'].shift(freq=pd.Timedelta('48h'))
     
     # Create target columns
     # Base target: da_price_actual
@@ -49,9 +45,8 @@ def feature_engineering(df):
     df['target_residual'] = df['imbalance_price_15m'] - df['da_price_actual']
     df['target_anomaly'] = ((df['imbalance_price_15m'] > 200) | (df['imbalance_price_15m'] < 0)).astype(int)
     
-    # Activation volume is typically 5-15% of reserved capacity in TenneT. Since we don't have historical volume, we use a realistic baseline.
-    np.random.seed(42)
-    df['target_activation_ratio'] = np.clip(0.15 + np.random.normal(0, 0.05, size=len(df)), 0.0, 1.0)
+    # Use deterministic proxy based on physical grid state extremity (price spread)
+    df['target_activation_ratio'] = np.clip(np.abs(df['imbalance_price_15m'] - df['da_price_actual']) / 500.0, 0.0, 1.0)
     
     # Fill missing MOL data with safe defaults to prevent dropping all rows if TenneT API fails
     if 'historical_safe_volume_mw' in df.columns:
@@ -96,8 +91,11 @@ def main():
     y_train_base = train['target_base']
     y_train_res = train['target_residual']
     y_train_anomaly = train['target_anomaly']
-    y_train_afrr = train['afrr_up_price_mw'].fillna(0)
-    y_train_afrr_down = train['afrr_down_price_mw'].fillna(0)
+    y_train_afrr = train.get('afrr_up_price_mw', pd.Series(0.0, index=train.index)).fillna(0)
+    y_train_afrr_down = train.get('afrr_down_price_mw', pd.Series(0.0, index=train.index)).fillna(0)
+    y_train_afrr_up_act = train.get('afrr_up_activation_price_mwh', pd.Series(0.0, index=train.index)).fillna(0)
+    y_train_afrr_down_act = train.get('afrr_down_activation_price_mwh', pd.Series(0.0, index=train.index)).fillna(0)
+    y_train_fcr = train.get('fcr_price_eur_mw', pd.Series(0.0, index=train.index)).fillna(0)
     y_train_act_ratio = train['target_activation_ratio'].fillna(0)
     y_train_safe_vol = train['historical_safe_volume_mw'].fillna(20.0)
     y_train_sat_vol = train['historical_saturation_volume_mw'].fillna(50.0)
@@ -118,8 +116,10 @@ def main():
         cv_probs = np.full(len(X_train), single_val)
         test_probs = np.full(len(X_test), single_val)
     else:
-        from sklearn.model_selection import cross_val_predict
-        cv_probs_raw = cross_val_predict(anomaly_model, X_train, y_train_anomaly, method='predict_proba', cv=5)
+        from sklearn.model_selection import KFold, cross_val_predict
+        # Use un-shuffled KFold to maintain temporal blocks and prevent StratifiedKFold class leakage
+        tscv = KFold(n_splits=5, shuffle=False)
+        cv_probs_raw = cross_val_predict(anomaly_model, X_train, y_train_anomaly, method='predict_proba', cv=tscv)
         if cv_probs_raw.shape[1] < 2:
             classes = anomaly_model.classes_
             cv_probs = np.ones(len(X_train)) if classes[0] == 1 else np.zeros(len(X_train))
@@ -133,10 +133,8 @@ def main():
         else:
             test_probs = test_probs_raw[:, 1]
             
-    X_train_meta['AI_Optimized_Margin_EUR'] = 50.0 - (cv_probs * 50.0)
-    X_test_meta['AI_Optimized_Margin_EUR'] = 50.0 - (test_probs * 50.0)
-    X_train_meta['AI_Optimized_Margin_EUR'] = X_train_meta['AI_Optimized_Margin_EUR'].clip(lower=0.0)
-    X_test_meta['AI_Optimized_Margin_EUR'] = X_test_meta['AI_Optimized_Margin_EUR'].clip(lower=0.0)
+    ai_opt_margin_train = np.clip(50.0 - (cv_probs * 50.0), 0.0, None)
+    ai_opt_margin_test = np.clip(50.0 - (test_probs * 50.0), 0.0, None)
     
     # Base Model
     print("Training Base Model...")
@@ -145,17 +143,17 @@ def main():
     X_train_base = X_train[base_features]
     X_test_base = X_test[base_features]
     
-    base_model = xgb.XGBRegressor(n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42, objective=asymmetric_mse_objective)
+    base_model = xgb.XGBRegressor(n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42)
     base_model.fit(X_train_base, y_train_base)
     
     # Residual Model
     print("Training Residual Model...")
-    # Implement Option 1: Remove Gas feature from Intraday Residual Model
-    res_features = [col for col in X_train_meta.columns if 'Gas' not in col and 'Error' not in col and 'Actual' not in col]
+    # Feature consistency: Include all base exogenous features
+    res_features = base_features
     X_train_res = X_train_meta[res_features]
     X_test_res = X_test_meta[res_features]
     
-    res_model = xgb.XGBRegressor(n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42, objective=asymmetric_mse_objective)
+    res_model = xgb.XGBRegressor(n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42)
     res_model.fit(X_train_res, y_train_res)
     
     print("Training aFRR Capacity Model...")
@@ -166,6 +164,16 @@ def main():
     afrr_down_model = xgb.XGBRegressor(n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42)
     afrr_down_model.fit(X_train_meta, y_train_afrr_down)
     
+    print("Training Activation Price Models & FCR Models...")
+    act_up_model = xgb.XGBRegressor(n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42)
+    act_up_model.fit(X_train_meta, y_train_afrr_up_act)
+    
+    act_down_model = xgb.XGBRegressor(n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42)
+    act_down_model.fit(X_train_meta, y_train_afrr_down_act)
+    
+    fcr_model = xgb.XGBRegressor(n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42)
+    fcr_model.fit(X_train_meta, y_train_fcr)
+
     print("Training Activation Volume Model...")
     act_ratio_model = xgb.XGBRegressor(n_estimators=100, max_depth=4, learning_rate=0.05, random_state=42)
     act_ratio_model.fit(X_train_meta, y_train_act_ratio)
@@ -185,6 +193,10 @@ def main():
     forecast_price = base_pred + res_pred
     forecast_afrr_up = afrr_model.predict(X_test_meta)
     forecast_afrr_down = afrr_down_model.predict(X_test_meta)
+    forecast_afrr_up_act = act_up_model.predict(X_test_meta)
+    forecast_afrr_down_act = act_down_model.predict(X_test_meta)
+    forecast_fcr = fcr_model.predict(X_test_meta)
+    
     forecast_act_ratio = act_ratio_model.predict(X_test_meta)
     forecast_act_ratio = np.clip(forecast_act_ratio, 0.0, 1.0)
     
@@ -198,25 +210,24 @@ def main():
         'forecast_price': forecast_price,
         'da_price_actual': test['da_price_actual'].values,
         'forecast_da_price': base_pred,
-        'AI_Optimized_Margin_EUR': X_test_meta['AI_Optimized_Margin_EUR'].values
+        'AI_Optimized_Margin_EUR': ai_opt_margin_test
     }
     
-    if 'afrr_up_price_mw' in test.columns:
-        out_dict['afrr_up_price_mw'] = test['afrr_up_price_mw'].values
-    if 'afrr_down_price_mw' in test.columns:
-        out_dict['afrr_down_price_mw'] = test['afrr_down_price_mw'].values
-    if 'afrr_up_activation_price_mwh' in test.columns:
-        out_dict['afrr_up_activation_price_mwh'] = test['afrr_up_activation_price_mwh'].values
-    if 'afrr_down_activation_price_mwh' in test.columns:
-        out_dict['afrr_down_activation_price_mwh'] = test['afrr_down_activation_price_mwh'].values
-    if 'fcr_price_eur_mw' in test.columns:
-        out_dict['fcr_price_eur_mw'] = test['fcr_price_eur_mw'].values
+    out_dict['afrr_up_price_mw'] = test.get('afrr_up_price_mw', pd.Series(0.0, index=test.index)).values
+    out_dict['afrr_down_price_mw'] = test.get('afrr_down_price_mw', pd.Series(0.0, index=test.index)).values
+    out_dict['afrr_up_activation_price_mwh'] = test.get('afrr_up_activation_price_mwh', pd.Series(np.nan, index=test.index)).values
+    out_dict['afrr_down_activation_price_mwh'] = test.get('afrr_down_activation_price_mwh', pd.Series(np.nan, index=test.index)).values
+    out_dict['fcr_price_eur_mw'] = test.get('fcr_price_eur_mw', pd.Series(0.0, index=test.index)).values
 
     out_dict['forecast_afrr_up_price_mw'] = forecast_afrr_up
     out_dict['forecast_afrr_down_price_mw'] = forecast_afrr_down
+    out_dict['forecast_afrr_up_activation_price_mwh'] = forecast_afrr_up_act
+    out_dict['forecast_afrr_down_activation_price_mwh'] = forecast_afrr_down_act
+    out_dict['forecast_fcr_price_eur_mw'] = forecast_fcr
     out_dict['forecast_activation_ratio'] = forecast_act_ratio
+    
     out_dict['forecast_safe_volume_mw'] = np.clip(forecast_safe_vol, a_min=0.0, a_max=None)
-    out_dict['forecast_saturation_volume_mw'] = np.clip(forecast_sat_vol, a_min=0.0, a_max=None)
+    out_dict['forecast_saturation_volume_mw'] = np.maximum(np.clip(forecast_sat_vol, a_min=0.0, a_max=None), out_dict['forecast_safe_volume_mw'])
 
     result_df = pd.DataFrame(out_dict).set_index('datetime')
     

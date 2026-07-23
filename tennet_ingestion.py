@@ -79,7 +79,8 @@ def fetch_tennet_afrr_activations(start, end):
         time_col = next((c for c in df.columns if c.lower() in ['time', 'date', 'datetime', 'periodfrom', 'periodstart', 'timeinterval_start']), df.columns[0])
         try:
             df.set_index(time_col, inplace=True)
-            df.index = pd.to_datetime(df.index).tz_localize('Europe/Amsterdam', ambiguous='NaT').tz_convert('UTC')
+            dt = pd.to_datetime(df.index)
+            df.index = dt.tz_convert('UTC') if dt.tz is not None else dt.tz_localize('Europe/Amsterdam', ambiguous='NaT').tz_convert('UTC')
         except Exception as e:
             print(f"Skipping {date_str} due to index parsing error: {e}")
             continue
@@ -110,8 +111,8 @@ def fetch_tennet_afrr_activations(start, end):
     # Ensure there are no duplicate indexes
     final_df = final_df[~final_df.index.duplicated(keep='last')]
     
-    # Strip timezone for SQLite
-    final_df.index = final_df.index.tz_localize(None)
+    # Strip timezone and standardize format for SQLite
+    final_df.index = final_df.index.tz_localize(None).strftime('%Y-%m-%d %H:%M:%S')
     
     return final_df
 

@@ -361,15 +361,12 @@ def main():
     imb_df = imb_df.tz_convert('UTC')
     imb_df = imb_df[~imb_df.index.duplicated(keep='first')]
     if isinstance(imb_df, pd.DataFrame):
-        # Average Short and Long if both exist
         if 'Short' in imb_df.columns and 'Long' in imb_df.columns:
-            imb_series = imb_df[['Short', 'Long']].mean(axis=1)
+            imb_df = imb_df[['Short', 'Long']].rename(columns={'Short': 'imbalance_price_short_15m', 'Long': 'imbalance_price_long_15m'})
         else:
-            imb_series = imb_df.iloc[:, 0]
+            imb_df = imb_df.iloc[:, 0].to_frame(name='imbalance_price_15m')
     else:
-        imb_series = imb_df
-        
-    imb_df = imb_series.to_frame(name='imbalance_price_15m')
+        imb_df = imb_df.to_frame(name='imbalance_price_15m')
     
     # Cleaning Load Forecast
     load_df = load_df.tz_convert('UTC')
@@ -450,15 +447,23 @@ def main():
         fcr_df = pd.DataFrame(columns=['fcr_price_eur_mw'])
 
     print(f"Fetching TTF Gas Prices via yfinance from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}...")
-    ttf_df = yf.download("TTF=F", start=start_date.strftime('%Y-%m-%d'), end=(end_date + pd.Timedelta(days=1)).strftime('%Y-%m-%d'))
-    gas_series = ttf_df['Close'].shift(1)
+    try:
+        ttf_df = yf.download("TTF=F", start=start_date.strftime('%Y-%m-%d'), end=(end_date + pd.Timedelta(days=1)).strftime('%Y-%m-%d'))
+        if not ttf_df.empty and 'Close' in ttf_df.columns:
+            gas_series = ttf_df['Close'].shift(1)
+        else:
+            gas_series = pd.Series(0.0, index=[pd.to_datetime(start_date)])
+    except Exception as e:
+        print(f"Error fetching TTF Gas Prices: {e}")
+        gas_series = pd.Series(0.0, index=[pd.to_datetime(start_date)])
+        
     if isinstance(gas_series, pd.DataFrame):
         gas_series = gas_series.iloc[:, 0]
     gas_series.index = pd.to_datetime(gas_series.index).tz_localize('UTC')
     
     # Create continuous 15-min spine
-    start_utc = start_date.tz_localize('Europe/Amsterdam').tz_convert('UTC')
-    end_utc = end_date.tz_localize('Europe/Amsterdam').tz_convert('UTC') - pd.Timedelta(minutes=15)
+    start_utc = start_date.tz_localize('Europe/Amsterdam', ambiguous='NaT', nonexistent='shift_forward').tz_convert('UTC')
+    end_utc = end_date.tz_localize('Europe/Amsterdam', ambiguous='NaT', nonexistent='shift_forward').tz_convert('UTC') - pd.Timedelta(minutes=15)
     
     # Spine generation with 15min freq
     spine = pd.date_range(start=start_utc, end=end_utc, freq='15min')
@@ -507,7 +512,12 @@ def main():
     # Join into unified DataFrame
     df = pd.DataFrame(index=spine)
     df['da_price_actual'] = da_df['da_price_actual']
-    df['imbalance_price_15m'] = imb_df['imbalance_price_15m']
+    
+    if 'imbalance_price_short_15m' in imb_df.columns:
+        df['imbalance_price_short_15m'] = imb_df['imbalance_price_short_15m']
+        df['imbalance_price_long_15m'] = imb_df['imbalance_price_long_15m']
+    else:
+        df['imbalance_price_15m'] = imb_df['imbalance_price_15m']
     df['Load Forecast'] = load_df['Load Forecast']
     for col in ['Solar', 'Wind Onshore', 'Wind Offshore']:
         if col in ws_df.columns:
@@ -534,9 +544,7 @@ def main():
     else:
         df['afrr_down_activation_price_mwh'] = np.nan
         
-    # Fallback missing aFRR activation prices to the TSO Imbalance Price (Dutch Settlement Rule)
-    df['afrr_up_activation_price_mwh'] = df['afrr_up_activation_price_mwh'].replace(0.0, np.nan).fillna(df['imbalance_price_15m'])
-    df['afrr_down_activation_price_mwh'] = df['afrr_down_activation_price_mwh'].replace(0.0, np.nan).fillna(df['imbalance_price_15m'])
+    # aFRR Activation Prices are preserved. 0.0 is legitimate. Non-activated periods remain NaN.
     
     # Add MOL elasticity columns
     df['historical_safe_volume_mw'] = mol_df['historical_safe_volume_mw']
